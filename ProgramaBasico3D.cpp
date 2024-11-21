@@ -49,7 +49,7 @@ Temporizador T;
 double AccumDeltaT=0;
 
 
-GLfloat AspectRatio, angulo=0;
+GLfloat AspectRatio, angulo=0, anguloPrincipal = 0;
 
 // Controle do modo de projecao
 // 0: Projecao Paralela Ortografica; 1: Projecao Perspectiva
@@ -76,10 +76,13 @@ Ponto VetorAlvo;
 GLfloat CameraMatrix[4][4];
 GLfloat InvCameraMatrix[4][4];
 GLuint TEX1, TEX2, TEX;
+GLfloat anguloCanhao;
 Ponto PosicaoDoObjeto(0,0,4);
+Ponto DirecaoDoObjeto(1,0,0);
+Ponto DirecaoDoCanhao(1,0,0);
 ModoExibicao tipoVista {Jogador};
 float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
-float velocidadeProj = 0.5f; // Velocidade do projétil
+float velocidadeProj = 1.0f; // Velocidade do projétil
 bool disparado = false; // Flag para indicar se o projétil foi disparado
 const int largura = 15;  // Número de blocos na largura do paredão
 const int altura = 15;   // Número de blocos na altura do paredão
@@ -639,6 +642,15 @@ void reshape( int w, int h )
 
 }
 
+void DesenhaCanhao(){
+    glPushMatrix();
+        glTranslatef(1.0f, 1.0f, 0.0f);
+        glColor3f(0.5f, 0.5f, 0.0f);
+        glRotatef(anguloCanhao, 0,0,1);
+        glScalef(2, 0.5, 0.5);
+        glutSolidCube(1);
+    glPopMatrix();
+}
 
 void DesenhaCuboComTextura(float tamAresta) {
     // Desativa o culling para garantir que todas as faces sejam desenhadas
@@ -711,8 +723,8 @@ void DesenhaCuboComTextura(float tamAresta) {
     glVertex3f(-tamAresta, tamAresta, tamAresta);
     glTexCoord2f(0.0f, 1.0f);
     glVertex3f(-tamAresta, tamAresta, -tamAresta);
-    
     glEnd();
+    DesenhaCanhao();
 
     // Reativa o culling de faces, se necessário
     glEnable(GL_CULL_FACE);
@@ -757,9 +769,10 @@ void display( void )
     
     glPushMatrix();
         glTranslatef ( PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z );
-        //glRotatef(angulo,0,1,0);
+        glRotatef(anguloPrincipal,0,1,0);
         glBindTexture (GL_TEXTURE_2D, TEX);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
         DesenhaCuboComTextura(1);//glutSolidCube(2);
+
         Ponto P;
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
         //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
@@ -821,6 +834,14 @@ void keyboard ( unsigned char key, int x, int y )
     case 's': zObs -= 1; break; // Move para baixo
     case 'a': xObs -= 1; break; // Move para esquerda
     case 'd': xObs += 1; break; // Move para direita
+    case 'n': 
+        anguloCanhao += 5;
+        DirecaoDoCanhao.rotacionaY(anguloCanhao);
+        break; // Move para direita
+    case 'm':
+        anguloCanhao -= 5; 
+        DirecaoDoCanhao.rotacionaY(anguloCanhao);
+        break; // Move para direita
     case 'r': // Resetar a posição
         OBS = Ponto(0, 3, 10);
         ALVO = Ponto(0, 0, 0);
@@ -829,9 +850,9 @@ void keyboard ( unsigned char key, int x, int y )
          if (!disparado) // Verifica se o projétil não foi disparado
         {
             disparado = true;
-            projX = PosicaoDoObjeto.x; // Define a posição inicial do projétil no cubo
-            projY = PosicaoDoObjeto.y;
-            projZ = PosicaoDoObjeto.z; // Posição do projétil começa no cubo
+            projX = DirecaoDoObjeto.x + DirecaoDoCanhao.x; // Define a posição inicial do projétil no cubo
+            projY = DirecaoDoObjeto.y + DirecaoDoCanhao.y;
+            projZ = DirecaoDoObjeto.z + DirecaoDoCanhao.z; // Posição do projétil começa no cubo
         }
         break;      
     default:
@@ -873,16 +894,22 @@ void arrow_keys ( int a_keys, int x, int y )
 	switch ( a_keys )
 	{
 		case GLUT_KEY_UP:       // When Up Arrow Is Pressed...
+            //anguloCanhao += 10;
             PosicaoDoObjeto.z--;
 			break;
 	    case GLUT_KEY_DOWN:     // When Down Arrow Is Pressed...
+            //anguloCanhao -= 10;
             PosicaoDoObjeto.z++; 
 			break;
         case GLUT_KEY_RIGHT:
-            PosicaoDoObjeto.x++;
+            anguloPrincipal += 15;
+            DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
+            //PosicaoDoObjeto.x++;
             break;
         case GLUT_KEY_LEFT:
-            PosicaoDoObjeto.x--;
+            anguloPrincipal -= 15;
+            DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
+            //PosicaoDoObjeto.x--;
             break;
 
 		default:
