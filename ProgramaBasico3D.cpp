@@ -35,11 +35,13 @@ using namespace std;
 #include "Ponto.h"
 #include "Instancia.h"
 #include "Tools.h"
+#include "ImageClass.h"
 
 enum ModoExibicao {
     Jogador,
     Superior,
-    SuperiorCompleto
+    SuperiorCompleto,
+    FreeCam
     };
 
 Temporizador T;
@@ -60,18 +62,95 @@ int ModoDeProjecao = 1;
 // A funcao "Init" utiliza esta variavel. O valor dela eh alterado
 // pela tecla 'e'
 int ModoDeExibicao = 1;
-
+int xObs, yObs, zObs = 0;
+void DesenhaCuboComTextura (float tamAresta);
 double nFrames=0;
 double TempoTotal=0;
+bool freecam = false;
 Ponto CantoEsquerdo = Ponto(-20,0,-10);
 Ponto OBS;
 Ponto ALVO;
 Ponto VetorAlvo;
 GLfloat CameraMatrix[4][4];
 GLfloat InvCameraMatrix[4][4];
+GLuint TEX1, TEX2;
 Ponto PosicaoDoObjeto(0,0,4);
 ModoExibicao tipoVista {Jogador};
 
+GLuint LoadTexture (const char *nomeTex)
+{
+    GLenum errorCode;
+    GLuint IdTEX;
+    // Habilita o uso de textura
+    glEnable ( GL_TEXTURE_2D );
+
+    // Define a forma de armazenamento dos pixels na textura (1= alihamento por byte)
+    glPixelStorei ( GL_UNPACK_ALIGNMENT, 1 );
+
+    // Gera um identificar para a textura
+    glGenTextures (1, &IdTEX); //  vetor que guardas os n�meros das texturas
+    errorCode =  glGetError();
+    if (errorCode == GL_INVALID_OPERATION)
+    {
+        cout << "Erro: glGenTextures chamada entre glBegin/glEnd." << endl;
+        return -1;
+    }
+
+    // Define que tipo de textura ser� usada
+    // GL_TEXTURE_2D ==> define que ser� usada uma textura 2D (bitmaps)
+    // texture_id[OBJETO_ESQUERDA]  ==> define o n�mero da textura
+    glBindTexture ( GL_TEXTURE_2D, IdTEX );
+
+    // Carrega a imagem
+    ImageClass Img;
+
+    int r = Img.Load(nomeTex);
+    if (!r)
+    {
+        cout << "Erro lendo imagem " << nomeTex << endl;
+        exit(1);
+    }
+
+    int level = 0;
+    int border = 0;
+
+    // Envia a textura para OpenGL, usando o formato apropriado
+    int formato;
+    formato = GL_RGB;
+    if (Img.Channels() == 4)
+        formato = GL_RGBA;
+    //if (Img.Channels() == 3)
+    //   formato = GL_RGB;
+
+    glTexImage2D (GL_TEXTURE_2D, level, formato,
+                  Img.SizeX(), Img.SizeY(),
+                  border, formato,
+                  GL_UNSIGNED_BYTE, Img.GetImagePtr());
+    errorCode = glGetError();
+    if (errorCode == GL_INVALID_OPERATION)
+    {
+        cout << "Erro: glTexImage2D chamada entre glBegin/glEnd." << endl;
+        return -1;
+    }
+    if (errorCode != GL_NO_ERROR)
+    {
+        cout << "Houve algum erro na criacao da textura." << endl;
+        return -1;
+    }
+    // Ajusta os filtros iniciais para a textura
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    Img.Delete();
+    
+    cout << "Carga de textura OK." << endl;
+    return IdTEX;
+}
+void initTexture (void)
+{
+    TEX2 = LoadTexture ("./grass_texture.jpg");
+    TEX1 = LoadTexture ("./igordinho.png");
+}
 
 // **********************************************************************
 //  void init(void)
@@ -96,10 +175,8 @@ void init(void)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     ALVO = Ponto(0, 0, 0);
     OBS = Ponto(0,3,10);
-    VetorAlvo = ALVO - OBS;
-    
-    
-
+    VetorAlvo = ALVO - OBS;        
+    initTexture();
 }
 
 // **********************************************************************
@@ -197,29 +274,40 @@ void DesenhaParalelepipedo()
 // **********************************************************************
 void DesenhaLadrilho(int corBorda, int corDentro)
 {
-    defineCor(corDentro);// desenha QUAD preenchido
-    //glColor3f(1,1,1);
-    glBegin ( GL_QUADS );
-        glNormal3f(0,1,0);
+    // Aplica a textura para o quadrado
+    glBindTexture(GL_TEXTURE_2D, TEX2);  // Aplica a textura TEX2
+
+    // Desenha o quadrado com a textura
+    glBegin(GL_QUADS);
+        glNormal3f(0, 1, 0);
+
+        // Coordenadas de textura para o ladrilho
+        glTexCoord2f(0.0f, 0.0f); // Coordenada (0,0) para o vértice (-0.5f, -0.5f)
+        glVertex3f(-0.5f,  0.0f, -0.5f);
+
+        glTexCoord2f(0.0f, 1.0f); // Coordenada (0,1) para o vértice (-0.5f, 0.5f)
+        glVertex3f(-0.5f,  0.0f,  0.5f);
+
+        glTexCoord2f(1.0f, 1.0f); // Coordenada (1,1) para o vértice (0.5f, 0.5f)
+        glVertex3f( 0.5f,  0.0f,  0.5f);
+
+        glTexCoord2f(1.0f, 0.0f); // Coordenada (1,0) para o vértice (0.5f, -0.5f)
+        glVertex3f( 0.5f,  0.0f, -0.5f);
+    glEnd();
+
+    // Desenha as bordas do ladrilho
+    //defineCor(corBorda); // Define a cor das bordas (presumindo que esta função altera a cor)
+
+    glBegin(GL_LINE_STRIP);
+        glNormal3f(0, 1, 0);
         glVertex3f(-0.5f,  0.0f, -0.5f);
         glVertex3f(-0.5f,  0.0f,  0.5f);
         glVertex3f( 0.5f,  0.0f,  0.5f);
         glVertex3f( 0.5f,  0.0f, -0.5f);
+        glVertex3f(-0.5f,  0.0f, -0.5f);  // Fecha a linha (volta ao ponto inicial)
     glEnd();
-
-    defineCor(corBorda);
-    //glColor3f(0,1,0);
-
-    glBegin ( GL_LINE_STRIP );
-        glNormal3f(0,1,0);
-        glVertex3f(-0.5f,  0.0f, -0.5f);
-        glVertex3f(-0.5f,  0.0f,  0.5f);
-        glVertex3f( 0.5f,  0.0f,  0.5f);
-        glVertex3f( 0.5f,  0.0f, -0.5f);
-    glEnd();
-
-
 }
+
 
 // **********************************************************************
 //
@@ -244,13 +332,82 @@ void DesenhaPiso()
     glPopMatrix();
 }
 
+
+void DesenhaQuadrado()
+{
+    glBindTexture(GL_TEXTURE_2D, TEX1);  // Aplica a textura
+    glBegin(GL_QUADS);
+    
+    glColor3f(1.0, 1.0, 1.0); // Usar cor branca para manter a textura
+
+    // Vértices do quadrado com coordenadas de textura
+    glTexCoord2f(0.0, 0.0);  // Coordenada de textura para o vértice (0,0)
+    glVertex3f(0, 0, 0);
+    
+    glTexCoord2f(1.0, 0.0);  // Coordenada de textura para o vértice (1,0)
+    glVertex3f(1, 0, 0);
+    
+    glTexCoord2f(1.0, 1.0);  // Coordenada de textura para o vértice (1,1)
+    glVertex3f(1, 1, 0);
+    
+    glTexCoord2f(0.0, 1.0);  // Coordenada de textura para o vértice (0,1)
+    glVertex3f(0, 1, 0);
+    
+    glEnd();
+    
+    glDisable(GL_TEXTURE_2D);  // Desativa o mapeamento de textura
+}
 void DesenhaParedao()
 {
+    // Altura do paredão
+    const int altura = 15; // 15m
+    
+    // Largura do paredão (meio do cenário)
+    const int largura = 15; // Exemplo: ajusta conforme o tamanho maior do cenário
+    
     glPushMatrix();
+
+    // Gira o paredão para ficar perpendicular ao chão
     glRotatef(90, 0, 0, 1);
-        DesenhaPiso();
+
+    // Posiciona o paredão no meio do cenário
+    glTranslatef(-1, -7, -10);
+
+    // Desenha os quadrados de 1m x 1m que compõem o paredão
+    for (int i = 0; i < altura; i++) // Altura (vertical)
+    {
+        for (int j = 0; j < largura; j++) // Largura (horizontal)
+        {
+            glPushMatrix();
+            glTranslatef(j, i, 0); // Move para a posição do quadrado
+
+            // Ajusta as coordenadas de textura para que a textura se repita
+            glBindTexture(GL_TEXTURE_2D, TEX1);  // Aplica a textura
+
+            glBegin(GL_QUADS);
+            glColor3f(1.0, 1.0, 1.0); // Cor branca para a textura
+
+            // Vértices com coordenadas de textura ajustadas para repetição
+            glTexCoord2f(j / float(largura), i / float(altura)); // Coordenada de textura para o vértice (0,0)
+            glVertex3f(0, 0, 0);
+
+            glTexCoord2f((j + 1) / float(largura), i / float(altura)); // Coordenada de textura para o vértice (1,0)
+            glVertex3f(1, 0, 0);
+
+            glTexCoord2f((j + 1) / float(largura), (i + 1) / float(altura)); // Coordenada de textura para o vértice (1,1)
+            glVertex3f(1, 1, 0);
+
+            glTexCoord2f(j / float(largura), (i + 1) / float(altura)); // Coordenada de textura para o vértice (0,1)
+            glVertex3f(0, 1, 0);
+
+            glEnd();
+            glPopMatrix();
+        }
+    }
     glPopMatrix();
 }
+
+
 void DesenhaChao()
 {
     glPushMatrix();
@@ -334,25 +491,32 @@ void PosicUser()
     // observador
     if (ModoDeProjecao == 0)
         glOrtho(-12, 12, -12, 12, 1, 18); // Projecao paralela Orthografica
-    else MygluPerspective(90,AspectRatio,0.1,50); // Projecao perspectiva
+    else MygluPerspective(90, AspectRatio, 0.1, 50); // Projecao perspectiva
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-
+    
     if(tipoVista == Jogador){
         OBS = Ponto(0,0,10);
-         gluLookAt(OBS.x, OBS.y, OBS.z,   // Posi��o do Observador
-              ALVO.x, ALVO.y, ALVO.z,     // Posi��o do Alvo
-              0.0,1.0,0.0);
+        ALVO = Ponto(0, 0, 0);
+        gluLookAt(OBS.x, OBS.y, OBS.z,   // Posi��o do Observador
+            ALVO.x, ALVO.y, ALVO.z,     // Posi��o do Alvo
+            0.0,1.0,0.0);
+    }
+    if(tipoVista == FreeCam){
+        OBS = Ponto(xObs,yObs,zObs);
+        gluLookAt(OBS.x, OBS.y, OBS.z,   // Posi��o do Observador
+            ALVO.x, ALVO.y, ALVO.z,     // Posi��o do Alvo
+            0.0,1.0,0.0);
     }
     if(tipoVista == Superior){
         OBS = Ponto(0,30,0);
         gluLookAt(OBS.x, OBS.y, OBS.z,   // Posi��o do Observador
-              ALVO.x, ALVO.y, ALVO.z,     // Posi��o do Alvo
-              0.0,0.0,-1.0);
+            ALVO.x, ALVO.y, ALVO.z,     // Posi��o do Alvo
+            0.0,0.0,-1.0);
     }
     ALVO = Ponto(0, 0, 0);
 
@@ -391,6 +555,85 @@ void reshape( int w, int h )
 
 }
 
+void DesenhaCuboComTextura(float tamAresta) {
+    // Desativa o culling para garantir que todas as faces sejam desenhadas
+    glDisable(GL_CULL_FACE);
+
+    glBegin(GL_QUADS);
+    
+    // Front Face
+    glNormal3f(0, 0, 1);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-tamAresta, -tamAresta, tamAresta);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-tamAresta, tamAresta, tamAresta);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(tamAresta, tamAresta, tamAresta);
+    glTexCoord2f(1.0, 0.0);
+    glVertex3f(tamAresta, -tamAresta, tamAresta);
+    
+    // Back Face
+    glNormal3f(0, 0, -1);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(-tamAresta, -tamAresta, -tamAresta);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(-tamAresta, tamAresta, -tamAresta);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(tamAresta, tamAresta, -tamAresta);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(tamAresta, -tamAresta, -tamAresta);
+    
+    // Top Face
+    glNormal3f(0, 1, 0);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-tamAresta, tamAresta, -tamAresta);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-tamAresta, tamAresta, tamAresta);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(tamAresta, tamAresta, tamAresta);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(tamAresta, tamAresta, -tamAresta);
+    
+    // Bottom Face
+    glNormal3f(0, -1, 0);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(-tamAresta, -tamAresta, -tamAresta);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(tamAresta, -tamAresta, -tamAresta);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(tamAresta, -tamAresta, tamAresta);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(-tamAresta, -tamAresta, tamAresta);
+    
+    // Right Face
+    glNormal3f(1, 0, 0);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(tamAresta, -tamAresta, -tamAresta);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(tamAresta, tamAresta, -tamAresta);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(tamAresta, tamAresta, tamAresta);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(tamAresta, -tamAresta, tamAresta);
+    
+    // Left Face
+    glNormal3f(-1, 0, 0);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-tamAresta, -tamAresta, -tamAresta);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f(-tamAresta, -tamAresta, tamAresta);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f(-tamAresta, tamAresta, tamAresta);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-tamAresta, tamAresta, -tamAresta);
+    
+    glEnd();
+
+    // Reativa o culling de faces, se necessário
+    glEnable(GL_CULL_FACE);
+}
+
+
 // **********************************************************************
 //  void display( void )
 // **********************************************************************
@@ -405,7 +648,8 @@ void display( void )
 	PosicUser();
 
 	glMatrixMode(GL_MODELVIEW);
-    
+    glEnable(GL_TEXTURE_2D);
+
     glPushMatrix();
     glTranslatef(0, -1, 0);
     DesenhaChao();
@@ -414,8 +658,10 @@ void display( void )
 	glPushMatrix();
 		glTranslatef ( 5.0f, 0.0f, 3.0f );
         glRotatef(angulo,0,1,0);
+        //glBindTexture (GL_TEXTURE_2D, TEX1);
 		glColor3f(0.5f,0.0f, 0.0f); // Vermelho
         glutSolidCube(2);
+        //DesenhaCuboComTextura(1);
 	glPopMatrix();
 
 	glPushMatrix();
@@ -427,8 +673,9 @@ void display( void )
     
     glPushMatrix();
         glTranslatef ( PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z );
-        glColor3f(0.8f,0.8f, 0.0f); // AMARELO
-        glutSolidCube(2);
+        //glRotatef(angulo,0,1,0);
+        glBindTexture (GL_TEXTURE_2D, TEX1);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
+        DesenhaCuboComTextura(1);//glutSolidCube(2);
         Ponto P;
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
         //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
@@ -438,8 +685,8 @@ void display( void )
     glPopMatrix();
 
     glColor3f(0.8,0.8,0);
-    glutSolidTeapot(2);
-    //DesenhaParedao();
+    //glutSolidTeapot(2);
+    DesenhaParedao();
     
 
 	glutSwapBuffers();
@@ -451,6 +698,9 @@ void display( void )
 //
 //
 // **********************************************************************
+float speed = 0.5f; // Velocidade do movimento
+Ponto direcao(0, 0, -1); // Direção inicial do observador (para frente)
+Ponto direita(1, 0, 0);  // Direção inicial para direita
 void keyboard ( unsigned char key, int x, int y )
 {
 	switch ( key )
@@ -476,6 +726,17 @@ void keyboard ( unsigned char key, int x, int y )
             init();
             glutPostRedisplay();
             break;
+    case 'f':
+            tipoVista = FreeCam;
+            break;
+    case 'w': xObs += 1; break; // Move para cima
+    case 's': xObs -= 1; break; // Move para baixo
+    case 'a': yObs -= 1; break; // Move para esquerda
+    case 'd': yObs += 1; break; // Move para direita
+    case 'r': // Resetar a posição
+        OBS = Ponto(0, 3, 10);
+        ALVO = Ponto(0, 0, 0);
+        break;    
     default:
             cout << key;
     break;
