@@ -9,3 +9,5 @@ p: visão 2d
 f: visão livre
 
 WASD move a câmerra na visão livre 
+
+setas mexe o cubo, e espaço atira o projétil
