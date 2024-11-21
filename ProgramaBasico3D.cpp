@@ -49,7 +49,7 @@ Temporizador T;
 double AccumDeltaT=0;
 
 
-GLfloat AspectRatio, angulo=0, anguloPrincipal = 90;
+GLfloat AspectRatio, angulo=0, anguloPrincipal = 180.0f;
 
 // Controle do modo de projecao
 // 0: Projecao Paralela Ortografica; 1: Projecao Perspectiva
@@ -76,7 +76,7 @@ Ponto VetorAlvo;
 GLfloat CameraMatrix[4][4];
 GLfloat InvCameraMatrix[4][4];
 GLuint TEX1, TEX2, TEX, TEX3;
-GLfloat anguloCanhao = 90.0f;
+GLfloat anguloCanhao = 0.0f;
 Ponto PosicaoDoObjeto(0,0,4);
 Ponto DirecaoDoObjeto(1,0,0);
 Ponto DirecaoDoCanhao(1,0,0);
@@ -648,7 +648,7 @@ void DesenhaCanhao() {
     glPushMatrix();
 
     // Movimenta o canhão para a posição desejada
-    glTranslatef(1.0f, 1.0f, 0.0f);
+    glTranslatef(1.0f, 1.0f, 1.0f);
 
     // Ativa texturas no escopo local
     glBindTexture(GL_TEXTURE_2D, TEX3); // Vincula a textura TEX3
@@ -795,16 +795,17 @@ void display( void )
     glPushMatrix();
         glTranslatef ( PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z );
         glRotatef(anguloPrincipal,0,1,0);
+        glRotatef(90.0f, 0, 1, 0)
         glBindTexture (GL_TEXTURE_2D, TEX);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
         DesenhaCuboComTextura(1);//glutSolidCube(2);
         DesenhaCanhao();
 
         // Tamanho do canhão (distância da base à ponta)
-        float comprimentoCanhao = 2.0f; // Ajuste esse valor conforme o comprimento do canhão
+        float comprimentoCanhao = 0.0f; // Ajuste esse valor conforme o comprimento do canhão
 
         // Converte o ângulo para radianos
         float radAngulo = anguloPrincipal * M_PI / 180.0f;
-        float radAnguloCanhao = anguloCanhao * M_PI / 180.0f;
+        float radAnguloCanhao = (anguloCanhao ) * M_PI / 180.0f;
 
         // A posição base do cubo já é PosicaoDoObjeto
         // A posição da ponta do canhão será calculada a partir dessa base com o ângulo de rotação
@@ -901,7 +902,7 @@ void keyboard ( unsigned char key, int x, int y )
         {
             // Converte os ângulos para radianos
             float radX = anguloPrincipal * M_PI / 180.0f; // Ângulo do canhão
-            float radY = anguloCanhao * M_PI / 180.0f; // Ângulo principal (se necessário)
+            float radY = (anguloCanhao) * M_PI / 180.0f; // Ângulo principal (se necessário)
 
             disparado = true;
 
