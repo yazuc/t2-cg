@@ -1,0 +1,26 @@
+[1mdiff --git a/Makefile b/Makefile[m
+[1mindex 76a76dc..9b2b3cf 100644[m
+[1m--- a/Makefile[m
+[1m+++ b/Makefile[m
+[36m@@ -6,7 +6,7 @@[m [mPROG = BasicoOpenGL[m
+ #FONTES = ExemploDeManipulacaoDeImagens.cpp ImageClass.cpp Temporizador.cpp SOIL/SOIL.cpp SOIL/image_DXT.cpp SOIL/image_helper.cpp SOIL/stb_image_aug.cpp[m
+ [m
+ #FONTES = Ponto.cpp Poligono.cpp Temporizador.cpp ListaDeCoresRGB.cpp Instancia.cpp ModeloMatricial.cpp TransformacoesGeometricas.cpp[m
+[31m-FONTES = Ponto.cpp Poligono.cpp Temporizador.cpp ListaDeCoresRGB.cpp Instancia.cpp Tools.cpp ProgramaBasico3D.cpp[m
+[32m+[m[32mFONTES = Ponto.cpp Poligono.cpp Temporizador.cpp ListaDeCoresRGB.cpp Instancia.cpp Tools.cpp ImageClass.cpp SOIL/SOIL.cpp SOIL/image_DXT.cpp SOIL/image_helper.cpp SOIL/stb_image_aug.cpp ProgramaBasico3D.cpp[m
+ [m
+ [m
+ OBJETOS = $(FONTES:.cpp=.o)[m
+[1mdiff --git a/Poligono.h b/Poligono.h[m
+[1mindex 02a8242..e024957 100644[m
+[1m--- a/Poligono.h[m
+[1m+++ b/Poligono.h[m
+[36m@@ -23,7 +23,7 @@[m [musing namespace std;[m
+ #endif[m
+ [m
+ #ifdef __linux__[m
+[31m-#include <GL/glut.h>[m
+[32m+[m[32m#include "include/GL/glut.h"[m
+ #endif[m
+ [m
+ #include "Ponto.h"[m
