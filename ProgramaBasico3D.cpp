@@ -76,7 +76,23 @@ GLfloat InvCameraMatrix[4][4];
 GLuint TEX1, TEX2, TEX;
 Ponto PosicaoDoObjeto(0,0,4);
 ModoExibicao tipoVista {Jogador};
+float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
+float velocidadeProj = 0.5f; // Velocidade do projétil
+bool disparado = false; // Flag para indicar se o projétil foi disparado
+const int largura = 15;  // Número de blocos na largura do paredão
+const int altura = 15;   // Número de blocos na altura do paredão
+bool paredao[altura][largura]; // Matriz de blocos do paredão (true = ativo)
 
+void inicializarParedao()
+{
+    for (int i = 0; i < altura; i++)
+    {
+        for (int j = 0; j < largura; j++)
+        {
+            paredao[i][j] = true;
+        }
+    }
+}
 GLuint LoadTexture (const char *nomeTex)
 {
     GLenum errorCode;
@@ -178,6 +194,7 @@ void init(void)
     OBS = Ponto(0,3,10);
     VetorAlvo = ALVO - OBS;        
     initTexture();
+    inicializarParedao();
 }
 
 // **********************************************************************
@@ -211,6 +228,58 @@ void animate()
 // **********************************************************************
 //  void DesenhaCubo()
 // **********************************************************************
+bool verificarColisao()
+{
+    // Posições do paredão: O paredão vai de x = 6 até x = -7, de y = 0 e de z = -11 até z = 11
+    const float paredaoXMin = -7.0f;
+    const float paredaoXMax = 0.0f;
+    const float paredaoY = 0.0f; // O paredão está fixo no plano Y = 0
+    const float paredaoZMin = -10.0f;
+    const float paredaoZMax = -11.0f;
+
+    // Verifica se a posição do projétil está dentro dos limites do paredão
+    if ( projZ <= paredaoZMin && projZ >= paredaoZMax)
+    {
+        return true; // Colisão detectada
+    }
+    
+    return false; // Sem colisão
+}
+void quebrarBloco(float projX, float projY, float projZ)
+{
+    // Calcula as coordenadas do bloco atingido
+    int blocoX = int((projX + largura / 2.0f)); // Converte a posição para índice da matriz
+    int blocoY = int((projY + altura / 2.0f)); // Converte a posição para índice da matriz
+    
+    if (blocoX >= 0 && blocoX < largura && blocoY >= 0 && blocoY < altura)
+    {
+        paredao[blocoY][blocoX] = false; // Desativa o bloco atingido
+    }
+}
+
+void DesenhaProjetil()
+{
+    if (disparado) 
+    {
+        glPushMatrix();
+            glTranslatef(projX, projY, projZ); // Posiciona o projétil
+            glutSolidCube(2); // Desenha o projétil como uma esfera
+        glPopMatrix();
+        
+        // Atualiza a posição do projétil
+        projZ -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
+
+        //printf("X: %f Y: %f Z: %f",projX, projY, projZ);
+        // Verifica se o projétil atingiu o paredão (aproximadamente)
+        if (verificarColisao()) // Considera a posição do paredão
+        {
+            quebrarBloco(projX, projY, projZ); 
+            disparado = false; // O projétil parou
+            // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
+            std::cout << "Colisão com o paredão!" << std::endl;
+        }
+    }
+}
 void DesenhaCubo(float tamAresta)
 {
     glBegin ( GL_QUADS );
@@ -369,40 +438,43 @@ void DesenhaParedao()
     glPushMatrix();
 
     // Gira o paredão para ficar perpendicular ao chão
-    glRotatef(90, 0, 0, 1);
+    glRotatef(0, 0, 0, 1);
 
     // Posiciona o paredão no meio do cenário
-    glTranslatef(-1, -7, -10);
+    glTranslatef(-7, -1, -10);
 
     // Desenha os quadrados de 1m x 1m que compõem o paredão
     for (int i = 0; i < altura; i++) // Altura (vertical)
     {
         for (int j = 0; j < largura; j++) // Largura (horizontal)
         {
-            glPushMatrix();
-            glTranslatef(j, i, 0); // Move para a posição do quadrado
+            if (paredao[i][j]) // Renderiza apenas os blocos ativos
+            {
+                glPushMatrix();
+                glTranslatef(j, i, 0); // Move para a posição do quadrado
 
-            // Ajusta as coordenadas de textura para que a textura se repita
-            glBindTexture(GL_TEXTURE_2D, TEX1);  // Aplica a textura
+                // Ajusta as coordenadas de textura para que a textura se repita
+                glBindTexture(GL_TEXTURE_2D, TEX1);  // Aplica a textura
 
-            glBegin(GL_QUADS);
-            glColor3f(1.0, 1.0, 1.0); // Cor branca para a textura
+                glBegin(GL_QUADS);
+                glColor3f(1.0, 1.0, 1.0); // Cor branca para a textura
 
-            // Vértices com coordenadas de textura ajustadas para repetição
-            glTexCoord2f(j / float(largura), i / float(altura)); // Coordenada de textura para o vértice (0,0)
-            glVertex3f(0, 0, 0);
+                // Vértices com coordenadas de textura ajustadas para repetição
+                glTexCoord2f(j / float(largura), i / float(altura)); // Coordenada de textura para o vértice (0,0)
+                glVertex3f(0, 0, 0);
 
-            glTexCoord2f((j + 1) / float(largura), i / float(altura)); // Coordenada de textura para o vértice (1,0)
-            glVertex3f(1, 0, 0);
+                glTexCoord2f((j + 1) / float(largura), i / float(altura)); // Coordenada de textura para o vértice (1,0)
+                glVertex3f(1, 0, 0);
 
-            glTexCoord2f((j + 1) / float(largura), (i + 1) / float(altura)); // Coordenada de textura para o vértice (1,1)
-            glVertex3f(1, 1, 0);
+                glTexCoord2f((j + 1) / float(largura), (i + 1) / float(altura)); // Coordenada de textura para o vértice (1,1)
+                glVertex3f(1, 1, 0);
 
-            glTexCoord2f(j / float(largura), (i + 1) / float(altura)); // Coordenada de textura para o vértice (0,1)
-            glVertex3f(0, 1, 0);
+                glTexCoord2f(j / float(largura), (i + 1) / float(altura)); // Coordenada de textura para o vértice (0,1)
+                glVertex3f(0, 1, 0);
 
-            glEnd();
-            glPopMatrix();
+                glEnd();
+                glPopMatrix();
+            }
         }
     }
     glPopMatrix();
@@ -556,6 +628,7 @@ void reshape( int w, int h )
 
 }
 
+
 void DesenhaCuboComTextura(float tamAresta) {
     // Desativa o culling para garantir que todas as faces sejam desenhadas
     glDisable(GL_CULL_FACE);
@@ -682,12 +755,13 @@ void display( void )
         //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
 
         PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");
-        P.imprime("Ponto Instanciado: ", "\n");
+        //P.imprime("Ponto Instanciado: ", "\n");
     glPopMatrix();
 
     glColor3f(0.8,0.8,0);
     //glutSolidTeapot(2);
     DesenhaParedao();
+    DesenhaProjetil();
     
 
 	glutSwapBuffers();
@@ -730,14 +804,23 @@ void keyboard ( unsigned char key, int x, int y )
     case 'f':
             tipoVista = FreeCam;
             break;
-    case 'w': xObs += 1; break; // Move para cima
-    case 's': xObs -= 1; break; // Move para baixo
-    case 'a': yObs -= 1; break; // Move para esquerda
-    case 'd': yObs += 1; break; // Move para direita
+    case 'w': zObs += 1; break; // Move para cima
+    case 's': zObs -= 1; break; // Move para baixo
+    case 'a': xObs -= 1; break; // Move para esquerda
+    case 'd': xObs += 1; break; // Move para direita
     case 'r': // Resetar a posição
         OBS = Ponto(0, 3, 10);
         ALVO = Ponto(0, 0, 0);
-        break;    
+        break;  
+    case ' ': // Resetar a posição
+         if (!disparado) // Verifica se o projétil não foi disparado
+        {
+            disparado = true;
+            projX = PosicaoDoObjeto.x; // Define a posição inicial do projétil no cubo
+            projY = PosicaoDoObjeto.y;
+            projZ = PosicaoDoObjeto.z; // Posição do projétil começa no cubo
+        }
+        break;      
     default:
             cout << key;
     break;
