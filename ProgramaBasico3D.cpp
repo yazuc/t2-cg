@@ -49,7 +49,7 @@ Temporizador T;
 double AccumDeltaT=0;
 
 
-GLfloat AspectRatio, angulo=0, anguloPrincipal = 0;
+GLfloat AspectRatio, angulo=0, anguloPrincipal = 90;
 
 // Controle do modo de projecao
 // 0: Projecao Paralela Ortografica; 1: Projecao Perspectiva
@@ -75,12 +75,12 @@ Ponto ALVO;
 Ponto VetorAlvo;
 GLfloat CameraMatrix[4][4];
 GLfloat InvCameraMatrix[4][4];
-GLuint TEX1, TEX2, TEX;
+GLuint TEX1, TEX2, TEX, TEX3;
 GLfloat anguloCanhao;
 Ponto PosicaoDoObjeto(0,0,4);
 Ponto DirecaoDoObjeto(1,0,0);
 Ponto DirecaoDoCanhao(1,0,0);
-ModoExibicao tipoVista {Jogador};
+ModoExibicao tipoVista {PlayerCam};
 float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
 float velocidadeProj = 1.0f; // Velocidade do projétil
 bool disparado = false; // Flag para indicar se o projétil foi disparado
@@ -169,6 +169,7 @@ GLuint LoadTexture (const char *nomeTex)
 }
 void initTexture (void)
 {
+    TEX3 = LoadTexture ("./MonadoTilt.jpg");
     TEX2 = LoadTexture ("./grass_texture.jpg");
     TEX1 = LoadTexture ("./igordinho.png");
     TEX = LoadTexture ("./shulkxenoblade.png");
@@ -274,7 +275,7 @@ void DesenhaProjetil()
         // Atualiza a posição do projétil
         projZ -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
 
-        //printf("X: %f Y: %f Z: %f",projX, projY, projZ);
+        printf("X: %f Y: %f Z: %f",projX, projY, projZ);
         // Verifica se o projétil atingiu o paredão (aproximadamente)
         if (verificarColisao()) // Considera a posição do paredão
         {
@@ -642,15 +643,27 @@ void reshape( int w, int h )
 
 }
 
-void DesenhaCanhao(){
+void DesenhaCanhao() {
     glPushMatrix();
-        glTranslatef(1.0f, 1.0f, 0.0f);
-        glColor3f(0.5f, 0.5f, 0.0f);
-        glRotatef(anguloCanhao, 0,0,1);
-        glScalef(2, 0.5, 0.5);
-        glutSolidCube(1);
+
+    // Movimenta o canhão para a posição desejada
+    glTranslatef(1.0f, 1.0f, 0.0f);
+
+    // Ativa texturas no escopo local
+    glBindTexture(GL_TEXTURE_2D, TEX3); // Vincula a textura TEX3
+
+    // Rotaciona e escala o canhão
+    glRotatef(anguloCanhao, 0, 0, 1);
+    glScalef(2, 0.5, 0.5);
+
+    // Ajusta cor para branco (essencial para exibir textura corretamente)
+    //glColor3f(1.0f, 1.0f, 1.0f);
+
+    // Desenha o cubo texturizado
+    glutSolidCube(1.0);
     glPopMatrix();
 }
+
 
 void DesenhaCuboComTextura(float tamAresta) {
     // Desativa o culling para garantir que todas as faces sejam desenhadas
@@ -724,7 +737,6 @@ void DesenhaCuboComTextura(float tamAresta) {
     glTexCoord2f(0.0f, 1.0f);
     glVertex3f(-tamAresta, tamAresta, -tamAresta);
     glEnd();
-    DesenhaCanhao();
 
     // Reativa o culling de faces, se necessário
     glEnable(GL_CULL_FACE);
@@ -752,7 +764,7 @@ void display( void )
     glPopMatrix();
     
 	glPushMatrix();
-		glTranslatef ( 5.0f, 0.0f, 3.0f );
+		glTranslatef ( 5.0f, 0.0f, 0.0f );
         glRotatef(angulo,0,1,0);
         //glBindTexture (GL_TEXTURE_2D, TEX1);
 		glColor3f(0.5f,0.0f, 0.0f); // Vermelho
@@ -772,12 +784,12 @@ void display( void )
         glRotatef(anguloPrincipal,0,1,0);
         glBindTexture (GL_TEXTURE_2D, TEX);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
         DesenhaCuboComTextura(1);//glutSolidCube(2);
-
+        DesenhaCanhao();
         Ponto P;
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
         //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
 
-        PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");
+        //PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");
         //P.imprime("Ponto Instanciado: ", "\n");
     glPopMatrix();
 
@@ -835,11 +847,11 @@ void keyboard ( unsigned char key, int x, int y )
     case 'a': xObs -= 1; break; // Move para esquerda
     case 'd': xObs += 1; break; // Move para direita
     case 'n': 
-        anguloCanhao += 5;
+        anguloCanhao += 5.0f;
         DirecaoDoCanhao.rotacionaY(anguloCanhao);
         break; // Move para direita
     case 'm':
-        anguloCanhao -= 5; 
+        anguloCanhao -= 5.0f; 
         DirecaoDoCanhao.rotacionaY(anguloCanhao);
         break; // Move para direita
     case 'r': // Resetar a posição
@@ -849,10 +861,13 @@ void keyboard ( unsigned char key, int x, int y )
     case ' ': // Resetar a posição
          if (!disparado) // Verifica se o projétil não foi disparado
         {
+            float radX = anguloCanhao * M_PI / 180.0f; // Converte para radianos
+            float radY = anguloPrincipal * M_PI / 180.0f; 
             disparado = true;
-            projX = DirecaoDoObjeto.x + DirecaoDoCanhao.x; // Define a posição inicial do projétil no cubo
-            projY = DirecaoDoObjeto.y + DirecaoDoCanhao.y;
-            projZ = DirecaoDoObjeto.z + DirecaoDoCanhao.z; // Posição do projétil começa no cubo
+            projX = cos(radY) * sin(radX); // Define a posição inicial do projétil no cubo
+            projY = sin(radY);
+            projZ = cos(radY) * cos(radX); // Posição do projétil começa no cubo
+            printf("x:%f y:%f z:%f ", projX, projY, projZ);
         }
         break;      
     default:
@@ -902,12 +917,12 @@ void arrow_keys ( int a_keys, int x, int y )
             PosicaoDoObjeto.z++; 
 			break;
         case GLUT_KEY_RIGHT:
-            anguloPrincipal += 15;
+            anguloPrincipal += 5.0f;
             DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
             //PosicaoDoObjeto.x++;
             break;
         case GLUT_KEY_LEFT:
-            anguloPrincipal -= 15;
+            anguloPrincipal -= 5.0f;
             DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
             //PosicaoDoObjeto.x--;
             break;
