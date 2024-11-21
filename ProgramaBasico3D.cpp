@@ -76,13 +76,14 @@ Ponto VetorAlvo;
 GLfloat CameraMatrix[4][4];
 GLfloat InvCameraMatrix[4][4];
 GLuint TEX1, TEX2, TEX, TEX3;
-GLfloat anguloCanhao;
+GLfloat anguloCanhao = 90.0f;
 Ponto PosicaoDoObjeto(0,0,4);
 Ponto DirecaoDoObjeto(1,0,0);
 Ponto DirecaoDoCanhao(1,0,0);
 ModoExibicao tipoVista {PlayerCam};
 float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
-float velocidadeProj = 1.0f; // Velocidade do projétil
+float velocidadeProj = 0.5f; // Velocidade do projétil
+float pontaX, pontaY, pontaZ, dirProjX, dirProjY, dirProjZ = 0.0;
 bool disparado = false; // Flag para indicar se o projétil foi disparado
 const int largura = 15;  // Número de blocos na largura do paredão
 const int altura = 15;   // Número de blocos na altura do paredão
@@ -663,6 +664,18 @@ void DesenhaCanhao() {
     glutSolidCube(1.0);
     glPopMatrix();
 }
+// Função para mover o projétil
+void AtualizarPosicaoProjetil() {
+    if (disparado) {
+        // Atualiza a posição com base na direção e velocidade
+        projX += dirProjX * velocidadeProj; // Atualiza a posição no eixo X
+        projY += dirProjY * velocidadeProj; // Atualiza a posição no eixo Y
+        projZ += dirProjZ * velocidadeProj; // Atualiza a posição no eixo Z
+
+        // Exibe a nova posição do projétil
+        printf("Nova posição do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
+    }
+}
 
 
 void DesenhaCuboComTextura(float tamAresta) {
@@ -763,21 +776,21 @@ void display( void )
     DesenhaChao();
     glPopMatrix();
     
-	glPushMatrix();
-		glTranslatef ( 5.0f, 0.0f, 0.0f );
-        glRotatef(angulo,0,1,0);
-        //glBindTexture (GL_TEXTURE_2D, TEX1);
-		glColor3f(0.5f,0.0f, 0.0f); // Vermelho
-        glutSolidCube(2);
-        //DesenhaCuboComTextura(1);
-	glPopMatrix();
+	// glPushMatrix();
+	// 	glTranslatef ( 5.0f, 0.0f, 0.0f );
+    //     glRotatef(angulo,0,1,0);
+    //     //glBindTexture (GL_TEXTURE_2D, TEX1);
+	// 	glColor3f(0.5f,0.0f, 0.0f); // Vermelho
+    //     glutSolidCube(2);
+    //     //DesenhaCuboComTextura(1);
+	// glPopMatrix();
 
-	glPushMatrix();
-		glTranslatef ( -4.0f, 0.0f, 2.0f );
-		glRotatef(angulo,0,1,0);
-		glColor3f(0.6156862745, 0.8980392157, 0.9803921569); // Azul claro
-        glutSolidCube(2);
-	glPopMatrix();
+	// glPushMatrix();
+	// 	glTranslatef ( -4.0f, 0.0f, 2.0f );
+	// 	glRotatef(angulo,0,1,0);
+	// 	glColor3f(0.6156862745, 0.8980392157, 0.9803921569); // Azul claro
+    //     glutSolidCube(2);
+	// glPopMatrix();
     
     glPushMatrix();
         glTranslatef ( PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z );
@@ -785,6 +798,30 @@ void display( void )
         glBindTexture (GL_TEXTURE_2D, TEX);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
         DesenhaCuboComTextura(1);//glutSolidCube(2);
         DesenhaCanhao();
+
+        // Tamanho do canhão (distância da base à ponta)
+        float comprimentoCanhao = 2.0f; // Ajuste esse valor conforme o comprimento do canhão
+
+        // Converte o ângulo para radianos
+        float radAngulo = anguloPrincipal * M_PI / 180.0f;
+        float radAnguloCanhao = anguloCanhao * M_PI / 180.0f;
+
+        // A posição base do cubo já é PosicaoDoObjeto
+        // A posição da ponta do canhão será calculada a partir dessa base com o ângulo de rotação
+
+        // Calcula a direção do canhão (vetor de deslocamento)
+        float direcaoX = cos(radAngulo) * comprimentoCanhao; // Direção no eixo X
+        float direcaoY = sin(radAnguloCanhao);                             // Direção no eixo Y (se necessário ajuste a rotação no Y)
+        float direcaoZ = sin(radAngulo) * comprimentoCanhao; // Direção no eixo Z
+
+        // A posição do cubo já é PosicaoDoObjeto
+        // Agora, calculamos a posição da ponta do canhão com o deslocamento calculado
+        pontaX = PosicaoDoObjeto.x + direcaoX;
+        pontaY = PosicaoDoObjeto.y + direcaoY;
+        pontaZ = PosicaoDoObjeto.z + direcaoZ;
+
+        // Exibe a posição da ponta do canhão
+        printf("Posição da ponta do canhão: x: %f, y: %f, z: %f\n", pontaX, pontaY, pontaZ);
         Ponto P;
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
         //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
@@ -796,6 +833,7 @@ void display( void )
     glColor3f(0.8,0.8,0);
     //glutSolidTeapot(2);
     DesenhaParedao();
+    AtualizarPosicaoProjetil();
     DesenhaProjetil();
     
 
@@ -859,17 +897,27 @@ void keyboard ( unsigned char key, int x, int y )
         ALVO = Ponto(0, 0, 0);
         break;  
     case ' ': // Resetar a posição
-         if (!disparado) // Verifica se o projétil não foi disparado
+        if (!disparado) // Verifica se o projétil não foi disparado
         {
-            float radX = anguloCanhao * M_PI / 180.0f; // Converte para radianos
-            float radY = anguloPrincipal * M_PI / 180.0f; 
+            // Converte os ângulos para radianos
+            float radX = anguloPrincipal * M_PI / 180.0f; // Ângulo do canhão
+            float radY = anguloCanhao * M_PI / 180.0f; // Ângulo principal (se necessário)
+
             disparado = true;
-            projX = cos(radY) * sin(radX); // Define a posição inicial do projétil no cubo
-            projY = sin(radY);
-            projZ = cos(radY) * cos(radX); // Posição do projétil começa no cubo
-            printf("x:%f y:%f z:%f ", projX, projY, projZ);
+
+            dirProjX = cos(radY) * sin(radX); // Direção no eixo X
+            dirProjY = sin(radY);             // Direção no eixo Y
+            dirProjZ = cos(radY) * cos(radX); // Direção no eixo Z
+
+            // A posição inicial do projétil é a posição da ponta do canhão
+            projX = pontaX + dirProjX;
+            projY = pontaY + dirProjY;
+            projZ = pontaZ + dirProjZ;
+
+            // Exibe a posição inicial do projétil
+            printf("Posição inicial do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
         }
-        break;      
+        break;   
     default:
             cout << key;
     break;
