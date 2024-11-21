@@ -73,7 +73,7 @@ Ponto ALVO;
 Ponto VetorAlvo;
 GLfloat CameraMatrix[4][4];
 GLfloat InvCameraMatrix[4][4];
-GLuint TEX1, TEX2;
+GLuint TEX1, TEX2, TEX;
 Ponto PosicaoDoObjeto(0,0,4);
 ModoExibicao tipoVista {Jogador};
 
@@ -150,6 +150,7 @@ void initTexture (void)
 {
     TEX2 = LoadTexture ("./grass_texture.jpg");
     TEX1 = LoadTexture ("./igordinho.png");
+    TEX = LoadTexture ("./shulkxenoblade.png");
 }
 
 // **********************************************************************
@@ -674,7 +675,7 @@ void display( void )
     glPushMatrix();
         glTranslatef ( PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z );
         //glRotatef(angulo,0,1,0);
-        glBindTexture (GL_TEXTURE_2D, TEX1);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
+        glBindTexture (GL_TEXTURE_2D, TEX);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
         DesenhaCuboComTextura(1);//glutSolidCube(2);
         Ponto P;
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
