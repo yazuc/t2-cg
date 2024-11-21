@@ -41,7 +41,8 @@ enum ModoExibicao {
     Jogador,
     Superior,
     SuperiorCompleto,
-    FreeCam
+    FreeCam,
+    PlayerCam
     };
 
 Temporizador T;
@@ -64,6 +65,7 @@ int ModoDeProjecao = 1;
 int ModoDeExibicao = 1;
 int xObs, yObs, zObs = 0;
 void DesenhaCuboComTextura (float tamAresta);
+void atualizaCamera();
 double nFrames=0;
 double TempoTotal=0;
 bool freecam = false;
@@ -591,6 +593,15 @@ void PosicUser()
             ALVO.x, ALVO.y, ALVO.z,     // Posi��o do Alvo
             0.0,0.0,-1.0);
     }
+    if(tipoVista == PlayerCam){
+        // A câmera segue o jogador
+        OBS = Ponto(PosicaoDoObjeto.x, PosicaoDoObjeto.y + 5.0f, PosicaoDoObjeto.z + 10.0f); // Posição atrás e acima do jogador
+        ALVO = Ponto(PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z);               // Foca no jogador
+
+        gluLookAt(OBS.x, OBS.y, OBS.z,   // Posição do Observador
+                  ALVO.x, ALVO.y, ALVO.z, // Posição do Alvo
+                  0.0, 1.0, 0.0); 
+    }
     ALVO = Ponto(0, 0, 0);
 
     
@@ -718,7 +729,6 @@ void display( void )
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 	DefineLuz();
-
 	PosicUser();
 
 	glMatrixMode(GL_MODELVIEW);
@@ -804,6 +814,9 @@ void keyboard ( unsigned char key, int x, int y )
     case 'f':
             tipoVista = FreeCam;
             break;
+    case 'b':
+        tipoVista = PlayerCam;
+        break;
     case 'w': zObs += 1; break; // Move para cima
     case 's': zObs -= 1; break; // Move para baixo
     case 'a': xObs -= 1; break; // Move para esquerda
@@ -825,6 +838,31 @@ void keyboard ( unsigned char key, int x, int y )
             cout << key;
     break;
   }
+}
+
+void atualizaCamera()
+{
+    // Posição da câmera em relação ao jogador
+    float eyeX = PosicaoDoObjeto.x;
+    float eyeY = PosicaoDoObjeto.y + 5.0f; // Eleva a câmera acima do jogador
+    float eyeZ = PosicaoDoObjeto.z + 10.0f; // Afasta a câmera atrás do jogador
+
+    // Ponto para onde a câmera está olhando (o jogador)
+    float centerX = PosicaoDoObjeto.x;
+    float centerY = PosicaoDoObjeto.y;
+    float centerZ = PosicaoDoObjeto.z;
+
+    // Vetor "para cima" (normalmente o eixo Y positivo)
+    float upX = 0.0f;
+    float upY = 1.0f;
+    float upZ = 0.0f;
+
+    // Define a visão da câmera
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(eyeX, eyeY, eyeZ,  // Posição da câmera
+              centerX, centerY, centerZ,  // Ponto para onde a câmera olha
+              upX, upY, upZ);  // Vetor "para cima"
 }
 
 // **********************************************************************
@@ -850,6 +888,8 @@ void arrow_keys ( int a_keys, int x, int y )
 		default:
 			break;
 	}
+
+    atualizaCamera();
 }
 
 // **********************************************************************
