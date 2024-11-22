@@ -89,6 +89,7 @@ Ponto DirecaoDoCanhao(1,0,0);
 ModoExibicao tipoVista {PlayerCam};
 float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
 float velocidadeProj = 0.5f; // Velocidade do projétil
+const float velocidadeObj = 0.5f; // Velocidade do objeto
 float pontaX, pontaY, pontaZ, dirProjX, dirProjY, dirProjZ = 0.0;
 bool disparado = false; // Flag para indicar se o projétil foi disparado
 const int largura = 15;  // Número de blocos na largura do paredão
@@ -391,7 +392,25 @@ void DesenhaProjetil()
         // Verifica se o projétil atingiu o paredão (aproximadamente)
         if (verificarColisao()) // Considera a posição do paredão
         {
-            quebrarBloco(projX, projY, projZ); 
+            const int alcance = 1; // Alcance da destruição ao redor do impacto
+
+            // Itera sobre os blocos ao redor (em 3 dimensões)
+            for (int dx = -alcance; dx <= alcance; ++dx)
+            {
+                for (int dy = -alcance; dy <= alcance; ++dy)
+                {
+                    for (int dz = -alcance; dz <= alcance; ++dz)
+                    {
+                        int blocoX = projX + dx;
+                        int blocoY = projY + dy;
+                        int blocoZ = projZ + dz;
+
+                        // Quebra o bloco na posição calculada
+                        quebrarBloco(blocoX, blocoY, blocoZ);
+                    }
+                }
+            }
+
             disparado = false; // O projétil parou
             // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
             std::cout << "Colisão com o paredão!" << std::endl;
@@ -1104,22 +1123,24 @@ void arrow_keys ( int a_keys, int x, int y )
 	switch ( a_keys )
 	{
 		case GLUT_KEY_UP:       // When Up Arrow Is Pressed...
-            //anguloCanhao += 10;
-            PosicaoDoObjeto.z--;
+            // Cálculo de deslocamento para frente no eixo x
+            PosicaoDoObjeto.x += velocidadeObj * sin(anguloPrincipal * M_PI / 180.0f);
+            // Cálculo de deslocamento para frente no eixo z
+            PosicaoDoObjeto.z += velocidadeObj * cos(anguloPrincipal * M_PI / 180.0f);
 			break;
 	    case GLUT_KEY_DOWN:     // When Down Arrow Is Pressed...
-            //anguloCanhao -= 10;
-            PosicaoDoObjeto.z++; 
+            // Cálculo de deslocamento para trás no eixo x
+            PosicaoDoObjeto.x -= velocidadeObj * sin(anguloPrincipal * M_PI / 180.0f);
+            // Cálculo de deslocamento para trás no eixo z
+            PosicaoDoObjeto.z -= velocidadeObj * cos(anguloPrincipal * M_PI / 180.0f);
 			break;
         case GLUT_KEY_RIGHT:
             anguloPrincipal -= 5.0f;
             DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
-            //PosicaoDoObjeto.x++;
             break;
         case GLUT_KEY_LEFT:
             anguloPrincipal += 5.0f;
             DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
-            //PosicaoDoObjeto.x--;
             break;
 
 		default:
