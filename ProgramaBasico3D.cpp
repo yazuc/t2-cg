@@ -381,7 +381,7 @@ void DesenhaProjetil()
     {
         glPushMatrix();
             glTranslatef(projX, projY, projZ); // Posiciona o projétil
-            glutSolidCube(2); // Desenha o projétil como uma esfera
+            glutSolidSphere(0.5, 10, 5);// Desenha o projétil como uma esfera
         glPopMatrix();
         
         // Atualiza a posição do projétil
