@@ -95,6 +95,10 @@ bool disparado = false; // Flag para indicar se o projétil foi disparado
 const int largura = 15;  // Número de blocos na largura do paredão
 const int altura = 15;   // Número de blocos na altura do paredão
 bool paredao[altura][largura]; // Matriz de blocos do paredão (true = ativo)
+const float LIMITE_MIN_X = -40; // Limite mínimo do mapa no eixo X
+const float LIMITE_MAX_X = 40; // Limite máximo do mapa no eixo X
+const float LIMITE_MIN_Z = -10; // Limite mínimo do mapa no eixo Z
+const float LIMITE_MAX_Z = 28; // Limite máximo do mapa no eixo Z
 
 
 typedef struct  // Struct para armazenar um ponto
@@ -539,6 +543,14 @@ void DesenhaPiso()
     glPopMatrix();
 }
 
+void DesenhaLimitesMapa() {
+    glBegin(GL_LINE_LOOP);
+        glVertex3f(LIMITE_MIN_X, 0.0f, LIMITE_MIN_Z);
+        glVertex3f(LIMITE_MAX_X, 0.0f, LIMITE_MIN_Z);
+        glVertex3f(LIMITE_MAX_X, 0.0f, LIMITE_MAX_Z);
+        glVertex3f(LIMITE_MIN_X, 0.0f, LIMITE_MAX_Z);
+    glEnd();
+}
 
 void DesenhaQuadrado()
 {
@@ -810,6 +822,24 @@ void AtualizarPosicaoProjetil() {
         // Exibe a nova posição do projétil
         printf("Nova posição do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
     }
+
+    if (disparado) {
+        // Atualiza a posição com base na direção e velocidade
+        projX += dirProjX * velocidadeProj; // Atualiza a posição no eixo X
+        projY += dirProjY * velocidadeProj; // Atualiza a posição no eixo Y
+        projZ += dirProjZ * velocidadeProj; // Atualiza a posição no eixo Z
+
+        // Verificar se o projétil ultrapassou os limites do mapa
+        if (projX < LIMITE_MIN_X || projX > LIMITE_MAX_X || 
+            projZ < LIMITE_MIN_Z || projZ > LIMITE_MAX_Z) 
+        {
+            disparado = false; // Parar o projétil
+            std::cout << "Projétil saiu do mapa!" << std::endl;
+        }
+
+        // Exibe a nova posição do projétil
+        printf("Nova posição do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
+    }
 }
 
 
@@ -1001,7 +1031,7 @@ void display( void )
     //     MundoVirtual[0].ExibeObjeto();
     // glPopMatrix();
 
-    
+    DesenhaLimitesMapa();
 
 	glutSwapBuffers();
 }
@@ -1120,32 +1150,42 @@ void atualizaCamera()
 // **********************************************************************
 void arrow_keys ( int a_keys, int x, int y )
 {
-	switch ( a_keys )
-	{
-		case GLUT_KEY_UP:       // When Up Arrow Is Pressed...
-            // Cálculo de deslocamento para frente no eixo x
-            PosicaoDoObjeto.x += velocidadeObj * sin(anguloPrincipal * M_PI / 180.0f);
-            // Cálculo de deslocamento para frente no eixo z
-            PosicaoDoObjeto.z += velocidadeObj * cos(anguloPrincipal * M_PI / 180.0f);
-			break;
-	    case GLUT_KEY_DOWN:     // When Down Arrow Is Pressed...
-            // Cálculo de deslocamento para trás no eixo x
-            PosicaoDoObjeto.x -= velocidadeObj * sin(anguloPrincipal * M_PI / 180.0f);
-            // Cálculo de deslocamento para trás no eixo z
-            PosicaoDoObjeto.z -= velocidadeObj * cos(anguloPrincipal * M_PI / 180.0f);
-			break;
+	float novoX = PosicaoDoObjeto.x;
+    float novoZ = PosicaoDoObjeto.z;
+
+    switch ( a_keys )
+    {
+        case GLUT_KEY_UP:
+            // Atualizar posição ao clicar seta para cima
+            novoX += velocidadeObj * sin(anguloPrincipal * M_PI / 180.0f);
+            novoZ += velocidadeObj * cos(anguloPrincipal * M_PI / 180.0f);
+            break;
+        case GLUT_KEY_DOWN:
+            // Atualizar posição ao clicar seta para cima
+            novoX -= velocidadeObj * sin(anguloPrincipal * M_PI / 180.0f);
+            novoZ -= velocidadeObj * cos(anguloPrincipal * M_PI / 180.0f);
+            break;
         case GLUT_KEY_RIGHT:
+            // Alterar o ângulo ao clicar a seta da direita
             anguloPrincipal -= 5.0f;
             DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
             break;
         case GLUT_KEY_LEFT:
+            // Alterar o ângulo ao clicar a seta da esquerda
             anguloPrincipal += 5.0f;
             DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
             break;
+        default:
+            break;
+    }
 
-		default:
-			break;
-	}
+    // Verificar limites antes de atualizar a posição
+    if (novoX >= LIMITE_MIN_X && novoX <= LIMITE_MAX_X && 
+        novoZ >= LIMITE_MIN_Z && novoZ <= LIMITE_MAX_Z) 
+    {
+        PosicaoDoObjeto.x = novoX;
+        PosicaoDoObjeto.z = novoZ;
+    }
 
     atualizaCamera();
 }
