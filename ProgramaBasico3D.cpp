@@ -758,22 +758,26 @@ void reshape( int w, int h )
 void DesenhaCanhao() {
     glPushMatrix();
 
-    // Movimenta o canhão para a posição desejada
-    glTranslatef(1.0f, 1.0f, .0f);
-
     // Ativa texturas no escopo local
     glBindTexture(GL_TEXTURE_2D, TEX3); // Vincula a textura TEX3
 
-    // Rotaciona e escala o canhão
-    glRotatef(anguloCanhao, 0, 0, 1);
-    glScalef(2, 0.5, 0.5);
+    // Desenha o primeiro canhão no lado positivo do eixo X
+    glPushMatrix();
+    glTranslatef(1.0f, 1.0f, -1.2f); // Move o canhão para o lado positivo do eixo X
+    glRotatef(anguloCanhao, 0, 0, 1); // Rotaciona o canhão
+    glScalef(2, 0.5, 0.5); // Escala o canhão
+    glutSolidCube(1.0); // Desenha o canhão
+    glPopMatrix(); // Restaura a matriz
 
-    // Ajusta cor para branco (essencial para exibir textura corretamente)
-    //glColor3f(1.0f, 1.0f, 1.0f);
+    // Desenha o segundo canhão no lado negativo do eixo X
+    glPushMatrix();
+    glTranslatef(1.0f, 1.0f, 1.2f); // Move o canhão para o lado negativo do eixo X
+    glRotatef(anguloCanhao, 0, 0, 1); // Rotaciona o canhão
+    glScalef(2, 0.5, 0.5); // Escala o canhão
+    glutSolidCube(1.0); // Desenha o canhão
+    glPopMatrix(); // Restaura a matriz
 
-    // Desenha o cubo texturizado
-    glutSolidCube(1.0);
-    glPopMatrix();
+    glPopMatrix(); // Finaliza as transformações do canhão
 }
 // Função para mover o projétil
 void AtualizarPosicaoProjetil() {
@@ -925,9 +929,11 @@ void display( void )
     glPushMatrix();
         glTranslatef ( PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z );
         glRotatef(anguloPrincipal,0,1,0);
-        glRotatef(270.0f, 0, 1, 0);
         glBindTexture (GL_TEXTURE_2D, TEX);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
         DesenhaCuboComTextura(1);//glutSolidCube(2);
+        glRotatef(270.0f, 0, 1, 0);
+        DesenhaCanhao();    
+        glRotatef(0.0f, 0, 1, 0);
         DesenhaCanhao();
 
         // Tamanho do canhão (distância da base à ponta)
