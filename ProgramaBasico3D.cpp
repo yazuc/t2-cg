@@ -11,6 +11,12 @@
 #include <iostream>
 #include <cmath>
 #include <ctime>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <iostream>
 
 using namespace std;
 
@@ -88,6 +94,111 @@ bool disparado = false; // Flag para indicar se o projétil foi disparado
 const int largura = 15;  // Número de blocos na largura do paredão
 const int altura = 15;   // Número de blocos na altura do paredão
 bool paredao[altura][largura]; // Matriz de blocos do paredão (true = ativo)
+
+
+typedef struct  // Struct para armazenar um ponto
+{
+    float X,Y,Z;
+    void Set(float x, float y, float z)
+    {
+        X = x;
+        Y = y;
+        Z = z;
+    }
+    void Imprime()
+    {
+        cout << "X: " << X << " Y: " << Y << " Z: " << Z;
+    }
+} TPoint;
+
+
+typedef struct // Struct para armazenar um triângulo
+{
+    TPoint P1, P2, P3; // Pontos do triângulo
+    float R, G, B;     // Cores RGB da face
+
+    void imprime()
+    {
+        cout << "P1 "; P1.Imprime(); cout << endl;
+        cout << "P2 "; P2.Imprime(); cout << endl;
+        cout << "P3 "; P3.Imprime(); cout << endl;
+        cout << "Cor: (" << R << ", " << G << ", " << B << ")" << endl;
+    }
+} TTriangle;
+
+
+// Classe para armazenar um objeto 3D
+class Objeto3D
+{
+    TTriangle *faces; // vetor de faces
+    unsigned int nFaces; // Variavel que armazena o numero de faces do objeto
+public:
+    Objeto3D()
+    {
+        nFaces = 0;
+        faces = NULL;
+    }
+    unsigned int getNFaces()
+    {
+        return nFaces;
+    }
+    void LeObjeto (char *Nome); // implementado fora da classe
+    void ExibeObjeto(); // implementado fora da classe
+};
+
+
+Objeto3D *MundoVirtual;
+
+void Objeto3D::LeObjeto (char *Nome)
+{
+    // ***************
+    // Exercicio
+    //      complete esta rotina fazendo a leitura do objeto
+    // ***************
+    
+    ifstream arq;
+    arq.open(Nome, ios::in);
+    if (!arq)
+    {
+        cout << "Erro na abertura do arquivo " << Nome << "." << endl;
+        exit(1);
+    }
+    arq >> nFaces;
+    faces = new TTriangle[nFaces];
+    float x,y,z;
+    for (int i=0;i<nFaces;i++)
+    {
+        // Le os trs vŽrtices
+        arq >> x >> y >> z; // Vertice 1
+        faces[i].P1.Set(x,y,z);
+        arq >> x >> y >> z; // Vertice 2
+        faces[i].P2.Set(x,y,z);
+        arq >> x >> y >> z; // Vertice 3
+        faces[i].P3.Set(x,y,z);
+        cout << i << ": ";
+        faces[i].imprime();
+        // Falta ler o RGB da face....
+    }
+}
+
+void Objeto3D::ExibeObjeto()
+{
+    if (!faces || nFaces == 0)
+    {
+        cout << "Objeto vazio ou não carregado!" << endl;
+        return;
+    }
+
+    glBegin(GL_TRIANGLES); // Início do desenho de triângulos
+    for (unsigned int i = 0; i < nFaces; i++)
+    {
+        // Desenhar o triângulo i
+        glVertex3f(faces[i].P1.X, faces[i].P1.Y, faces[i].P1.Z); // Vértice 1
+        glVertex3f(faces[i].P2.X, faces[i].P2.Y, faces[i].P2.Z); // Vértice 2
+        glVertex3f(faces[i].P3.X, faces[i].P3.Y, faces[i].P3.Z); // Vértice 3
+    }
+    glEnd(); // Fim do desenho
+}
 
 void inicializarParedao()
 {
@@ -230,7 +341,6 @@ void animate()
         nFrames = 0;
     }
 }
-
 
 // **********************************************************************
 //  void DesenhaCubo()
@@ -457,6 +567,7 @@ void DesenhaParedao()
         {
             if (paredao[i][j]) // Renderiza apenas os blocos ativos
             {
+                
                 glPushMatrix();
                 glTranslatef(j, i, 0); // Move para a posição do quadrado
 
@@ -756,6 +867,25 @@ void DesenhaCuboComTextura(float tamAresta) {
 }
 
 
+// No seu loop de renderização ou função de desenho:
+void desenharLinhaDirecao(float projX, float projY, float projZ, float dirProjX, float dirProjY, float dirProjZ)
+{
+    // Escala para ajustar o comprimento da linha (exemplo: 10x)
+    float escala = 100.0f;
+
+    // Ponto final da linha com base na direção do projétil
+    float linhaX = projX + dirProjX * escala;
+    float linhaY = projY + dirProjY * escala;
+    float linhaZ = projZ + dirProjZ * escala;
+
+    // Desenhar a linha
+    glBegin(GL_LINES); // Inicia o desenho de linhas
+        glColor3f(1.0f, 0.0f, 0.0f); // Cor da linha (vermelho, exemplo)
+        glVertex3f(projX, projY, projZ); // Posição inicial (projétil)
+        glVertex3f(linhaX, linhaY, linhaZ); // Posição final
+    glEnd(); // Finaliza o desenho
+}
+
 // **********************************************************************
 //  void display( void )
 // **********************************************************************
@@ -801,7 +931,7 @@ void display( void )
         DesenhaCanhao();
 
         // Tamanho do canhão (distância da base à ponta)
-        float comprimentoCanhao = 0.0f; // Ajuste esse valor conforme o comprimento do canhão
+        float comprimentoCanhao = .0f; // Ajuste esse valor conforme o comprimento do canhão
 
         // Converte o ângulo para radianos
         float radAngulo = anguloPrincipal * M_PI / 180.0f;
@@ -820,9 +950,10 @@ void display( void )
         pontaX = PosicaoDoObjeto.x + direcaoX;
         pontaY = PosicaoDoObjeto.y + direcaoY;
         pontaZ = PosicaoDoObjeto.z + direcaoZ;
+        //desenharLinhaDirecao(pontaX, pontaY, pontaZ, projX, projY, projZ);
 
         // Exibe a posição da ponta do canhão
-        printf("Posição da ponta do canhão: x: %f, y: %f, z: %f\n", pontaX, pontaY, pontaZ);
+        //printf("Posição da ponta do canhão: x: %f, y: %f, z: %f\n", pontaX, pontaY, pontaZ);
         Ponto P;
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
         //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
@@ -836,6 +967,16 @@ void display( void )
     DesenhaParedao();
     AtualizarPosicaoProjetil();
     DesenhaProjetil();
+
+    //Exibe vaca
+    // glPushMatrix();
+    //     glTranslatef ( 0,0,0 );
+    //     glRotatef(65,0,0,1);
+    //     glRotatef(30.0,1,0,0);
+    //     //glColor3f(1.0f,0.3f,0.0f);
+    //     MundoVirtual[0].ExibeObjeto();
+    // glPopMatrix();
+
     
 
 	glutSwapBuffers();
@@ -1002,8 +1143,14 @@ int main ( int argc, char** argv )
 	glutKeyboardFunc ( keyboard );
 	glutSpecialFunc ( arrow_keys );
 	glutIdleFunc ( animate );
-
-	glutMainLoop ( );
+    
+    //char Nome[] = "Vaca.tri";
+    //MundoVirtual = new Objeto3D[5];
+    //carrega obj .tri
+    //MundoVirtual[0].LeObjeto(Nome);
+    //MundoVirtual[1].LeObjeto("watership.tri");
+	
+    glutMainLoop ( );
 	return 0;
 }
 
