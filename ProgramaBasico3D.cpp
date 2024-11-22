@@ -365,11 +365,12 @@ bool verificarColisao()
 void quebrarBloco(float projX, float projY, float projZ)
 {
     // Calcula as coordenadas do bloco atingido
-    int blocoX = int((projX + largura / 2.0f)); // Converte a posição para índice da matriz
-    int blocoY = int((projY + altura / 2.0f)); // Converte a posição para índice da matriz
+    int blocoX = int((projX + largura / 2.0f)) ; // Converte a posição para índice da matriz
+    int blocoY = int((projY + altura / 2.0f)) - 7; // Converte a posição para índice da matriz
     
     if (blocoX >= 0 && blocoX < largura && blocoY >= 0 && blocoY < altura)
     {
+        cout << "blocoX" << blocoX << "blocoY" << blocoY;
         paredao[blocoY][blocoX] = false; // Desativa o bloco atingido
     }
 }
@@ -933,8 +934,6 @@ void display( void )
         DesenhaCuboComTextura(1);//glutSolidCube(2);
         glRotatef(270.0f, 0, 1, 0);
         DesenhaCanhao();    
-        glRotatef(0.0f, 0, 1, 0);
-        DesenhaCanhao();
 
         // Tamanho do canhão (distância da base à ponta)
         float comprimentoCanhao = .0f; // Ajuste esse valor conforme o comprimento do canhão
@@ -1113,12 +1112,12 @@ void arrow_keys ( int a_keys, int x, int y )
             PosicaoDoObjeto.z++; 
 			break;
         case GLUT_KEY_RIGHT:
-            anguloPrincipal += 5.0f;
+            anguloPrincipal -= 5.0f;
             DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
             //PosicaoDoObjeto.x++;
             break;
         case GLUT_KEY_LEFT:
-            anguloPrincipal -= 5.0f;
+            anguloPrincipal += 5.0f;
             DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
             //PosicaoDoObjeto.x--;
             break;
