@@ -648,7 +648,7 @@ void DesenhaCanhao() {
     glPushMatrix();
 
     // Movimenta o canhão para a posição desejada
-    glTranslatef(1.0f, 1.0f, 1.0f);
+    glTranslatef(1.0f, 1.0f, .0f);
 
     // Ativa texturas no escopo local
     glBindTexture(GL_TEXTURE_2D, TEX3); // Vincula a textura TEX3
@@ -795,7 +795,7 @@ void display( void )
     glPushMatrix();
         glTranslatef ( PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z );
         glRotatef(anguloPrincipal,0,1,0);
-        glRotatef(90.0f, 0, 1, 0)
+        glRotatef(270.0f, 0, 1, 0);
         glBindTexture (GL_TEXTURE_2D, TEX);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
         DesenhaCuboComTextura(1);//glutSolidCube(2);
         DesenhaCanhao();
