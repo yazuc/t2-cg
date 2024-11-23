@@ -358,10 +358,10 @@ void animate()
 bool verificarColisao()
 {
     // Posições do paredão: O paredão vai de x = 6 até x = -7, de y = 0 e de z = -11 até z = 11
-    const float paredaoXMin = 6.0f;
+    const float paredaoXMin = 5.0f;
     const float paredaoXMax = 7.0f;
-    const float paredaoZMin = 4.0f; 
-    const float paredaoZMax = 16.0f; 
+    const float paredaoZMin = -11.0f; 
+    const float paredaoZMax = 30.0f; 
 
     // Verifica se a posição do projétil está dentro dos limites do paredão
     if (projX >= paredaoXMin && projX <= paredaoXMax && projZ >= paredaoZMin && projZ <= paredaoZMax)
@@ -375,10 +375,10 @@ bool verificarColisao()
 bool verificarColisao2()
 {
     // Posições do paredão: O paredão vai de x = 6 até x = -7, de y = 0 e de z = -11 até z = 11
-    const float paredaoXMin = 6.0f;
+    const float paredaoXMin = 5.0f;
     const float paredaoXMax = 7.0f;
-    const float paredaoZMin = 4.0f; 
-    const float paredaoZMax = 16.0f; 
+    const float paredaoZMin = -11.0f; 
+    const float paredaoZMax = 30.0f; 
 
     // Verifica se a posição do projétil está dentro dos limites do paredão
     if (projX >= paredaoXMin && projX <= paredaoXMax && projZ >= paredaoZMin && projZ <= paredaoZMax)
