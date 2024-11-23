@@ -97,7 +97,7 @@ float pontaX, pontaY, pontaZ, dirProjX, dirProjY, dirProjZ = 0.0;
 float pontaXd, pontaYd, pontaZd, dirProjXd, dirProjYd, dirProjZd = 0.0;
 bool disparado = false; // Flag para indicar se o projétil foi disparado
 bool disparado1 = false; // Flag para indicar se o projétil foi disparado
-const int largura = 15;  // Número de blocos na largura do paredão
+const int largura = 40;  // Número de blocos na largura do paredão
 const int altura = 15;   // Número de blocos na altura do paredão
 bool paredao[altura][largura]; // Matriz de blocos do paredão (true = ativo)
 const float LIMITE_MIN_X = -45; // Limite mínimo do mapa no eixo X
@@ -655,6 +655,7 @@ void DesenhaQuadrado()
 }
 
 void DesenhaParedao()
+<<<<<<< HEAD
 {
     // Altura do paredão
     const int altura = 15; // 15 metros
@@ -663,13 +664,21 @@ void DesenhaParedao()
     const int largura = 15; // 15 metros
 
     // Empilha a transformação atual da matriz
+=======
+{    
+>>>>>>> refs/remotes/origin/main
     glPushMatrix();
 
     // Gira o paredão para que fique perpendicular ao chão, se necessário
     glRotatef(90, 0, 1, 0); // Ajustando rotação no eixo Y para uma melhor visualização
 
+<<<<<<< HEAD
     // Posiciona o paredão no local desejado dentro do cenário
     glTranslatef(-18.0f, -1.0f, 7.0f); // Translação para a posição do paredão
+=======
+    // Posiciona o paredão no meio do cenário
+    glTranslatef(-29.5, -1, 7);
+>>>>>>> refs/remotes/origin/main
 
     // Desenha os quadrados de 1m x 1m
     for (int i = 0; i < altura; i++) // Para cada linha (vertical)
