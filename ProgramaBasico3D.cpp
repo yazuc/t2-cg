@@ -504,6 +504,30 @@ void DesenhaProjetil()
 
             // Exibe a posição atual do projétil (opcional)
             printf("Projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
+            if (verificarColisao()) // Considera a posição do paredão
+            {
+                const int alcance = 1; // Alcance da destruição ao redor do impacto
+
+                // Itera sobre os blocos ao redor (em 3 dimensões)
+                for (int dx = -alcance; dx <= alcance; ++dx)
+                {
+                    for (int dy = -alcance; dy <= alcance; ++dy)
+                    {
+                        for (int dz = -alcance; dz <= alcance; ++dz)
+                        {
+                            int blocoX = projX + dx;
+                            int blocoY = projY + dy;
+                            int blocoZ = projZ + dz;
+
+                            // Quebra o bloco na posição calculada
+                            continua = quebrarBloco(blocoX, blocoY, blocoZ);
+                        }
+                    }
+                }
+                disparado = continua; // O projétil parou
+                // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
+                std::cout << "Colisão com o paredão!" << std::endl;
+            }
         }
         else
         {
@@ -1361,11 +1385,34 @@ void keyboard ( unsigned char key, int x, int y )
             disparado = true;
             t = 0.0f; // Reinicia o movimento ao longo da curva
 
-            // Defina os pontos de controle (ajuste conforme necessário)
-            P0x = pontaX; P0y = pontaY; P0z = pontaZ;            // Origem do disparo
-            P1x = pontaX + 5; P1y = pontaY + 10; P1z = pontaZ;   // Ponto de controle 1
-            P2x = pontaX + 10; P2y = pontaY + 5; P2z = pontaZ;   // Ponto de controle 2
-            P3x = pontaX + 15; P3y = pontaY; P3z = pontaZ - 5;   // Destino do disparo
+            // Converte o anguloPrincipal para radianos
+            float radX = anguloPrincipal * M_PI / 180.0f;
+            float radY = anguloCanhao * M_PI / 180.0f;
+
+            // Calcula os vetores direcionais a partir dos ângulos
+            float dirX = cos(radY) * sin(radX);
+            float dirY = sin(radY);
+            float dirZ = cos(radY) * cos(radX);
+
+            // Ponto inicial da curva (ponta do canhão)
+            P0x = pontaX;
+            P0y = pontaY;
+            P0z = pontaZ;
+
+            // Ajusta os pontos de controle com base na direção
+            float escala = 5.0f; // Ajuste da magnitude da direção
+            P1x = P0x + dirX * escala;
+            P1y = P0y + dirY * escala + 5; // Eleva para dar a curva inicial
+            P1z = P0z + dirZ * escala;
+
+            P2x = P1x + dirX * escala;
+            P2y = P1y + dirY * escala - 5; // Desce gradualmente
+            P2z = P1z + dirZ * escala;
+
+            // Destino do disparo, mais longe na direção
+            P3x = P2x + dirX * escala * 2;
+            P3y = P2y; // Mantém o mesmo nível para finalizar
+            P3z = P2z;
         }
         if(!disparado1){
             float radX = anguloPrincipal * M_PI / 180.0f; // Ângulo do canhão            
