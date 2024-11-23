@@ -1185,11 +1185,11 @@ void display( void )
         // Agora, calculamos a posição da ponta do canhão com o deslocamento calculado
         pontaX = PosicaoDoObjeto.x + direcaoX ;
         pontaY = PosicaoDoObjeto.y + direcaoY;
-        pontaZ = PosicaoDoObjeto.z + direcaoZ + deslocamentoLateral;
+        pontaZ = PosicaoDoObjeto.z + direcaoZ - deslocamentoLateral;
 
         pontaXd = PosicaoDoObjeto.x + direcaoXd ;
         pontaYd = PosicaoDoObjeto.y + direcaoYd;
-        pontaZd = PosicaoDoObjeto.z + direcaoZd - deslocamentoLateral; 
+        pontaZd = PosicaoDoObjeto.z + direcaoZd + deslocamentoLateral; 
         //desenharLinhaDirecao(pontaX, pontaY, pontaZ, projX, projY, projZ);
 
         // Exibe a posição da ponta do canhão
