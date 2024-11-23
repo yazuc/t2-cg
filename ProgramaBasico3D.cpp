@@ -107,6 +107,13 @@ const float LIMITE_MIN_X = -45; // Limite mínimo do mapa no eixo X
 const float LIMITE_MAX_X = 45; // Limite máximo do mapa no eixo X
 const float LIMITE_MIN_Z = -15; // Limite mínimo do mapa no eixo Z
 const float LIMITE_MAX_Z = 35; // Limite máximo do mapa no eixo Z
+float P0x, P0y, P0z; // Ponto inicial
+float P1x, P1y, P1z; // Ponto de controle 1
+float P2x, P2y, P2z; // Ponto de controle 2
+float P3x, P3y, P3z; // Ponto final
+
+float t = 0.0f;  // Parâmetro da curva (de 0 a 1)
+float dt = 0.01f; // Incremento de t para o movimento
 
 
 typedef struct  // Struct para armazenar um ponto
@@ -442,43 +449,70 @@ bool quebrarBloco(float projX, float projY, float projZ)
 void DesenhaProjetil()
 {
     bool continua;
-    if (disparado) 
+    // if (disparado) 
+    // {
+    //     glPushMatrix();
+    //         glTranslatef(projX, projY, projZ); // Posiciona o projétil
+    //         glutSolidSphere(0.5, 10, 5);// Desenha o projétil como uma esfera
+    //     glPopMatrix();
+                        
+    //     // Atualiza a posição do projétil
+    //     projX -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
+
+    //     printf("X: %f Y: %f Z: %f",projX, projY, projZ);
+    //     // Verifica se o projétil atingiu o paredão (aproximadamente)
+    //     if (verificarColisao()) // Considera a posição do paredão
+    //     {
+    //         const int alcance = 1; // Alcance da destruição ao redor do impacto
+
+    //         // Itera sobre os blocos ao redor (em 3 dimensões)
+    //         for (int dx = -alcance; dx <= alcance; ++dx)
+    //         {
+    //             for (int dy = -alcance; dy <= alcance; ++dy)
+    //             {
+    //                 for (int dz = -alcance; dz <= alcance; ++dz)
+    //                 {
+    //                     int blocoX = projX + dx;
+    //                     int blocoY = projY + dy;
+    //                     int blocoZ = projZ + dz;
+
+    //                     // Quebra o bloco na posição calculada
+    //                     continua = quebrarBloco(blocoX, blocoY, blocoZ);
+    //                 }
+    //             }
+    //         }
+    //         disparado = continua; // O projétil parou
+    //         // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
+    //         std::cout << "Colisão com o paredão!" << std::endl;
+    //     }
+    // }
+    if (disparado)
     {
         glPushMatrix();
-            glTranslatef(projX, projY, projZ); // Posiciona o projétil
-            glutSolidSphere(0.5, 10, 5);// Desenha o projétil como uma esfera
+            glTranslatef(projX, projY, projZ);
+            glutSolidSphere(0.5, 20, 20); // Desenha o projétil como uma esfera
         glPopMatrix();
-                        
-        // Atualiza a posição do projétil
-        projX -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
-
-        printf("X: %f Y: %f Z: %f",projX, projY, projZ);
-        // Verifica se o projétil atingiu o paredão (aproximadamente)
-        if (verificarColisao()) // Considera a posição do paredão
+        if (t <= 1.0f)
         {
-            const int alcance = 1; // Alcance da destruição ao redor do impacto
+            // Curva de Bézier cúbica
+            projX = pow(1-t, 3) * P0x + 3 * pow(1-t, 2) * t * P1x + 3 * (1-t) * t*t * P2x + t*t*t * P3x;
+            projY = pow(1-t, 3) * P0y + 3 * pow(1-t, 2) * t * P1y + 3 * (1-t) * t*t * P2y + t*t*t * P3y;
+            projZ = pow(1-t, 3) * P0z + 3 * pow(1-t, 2) * t * P1z + 3 * (1-t) * t*t * P2z + t*t*t * P3z;
 
-            // Itera sobre os blocos ao redor (em 3 dimensões)
-            for (int dx = -alcance; dx <= alcance; ++dx)
-            {
-                for (int dy = -alcance; dy <= alcance; ++dy)
-                {
-                    for (int dz = -alcance; dz <= alcance; ++dz)
-                    {
-                        int blocoX = projX + dx;
-                        int blocoY = projY + dy;
-                        int blocoZ = projZ + dz;
+            // Incrementa o parâmetro t
+            t += dt;
 
-                        // Quebra o bloco na posição calculada
-                        continua = quebrarBloco(blocoX, blocoY, blocoZ);
-                    }
-                }
-            }
-            disparado = continua; // O projétil parou
-            // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
-            std::cout << "Colisão com o paredão!" << std::endl;
+            // Exibe a posição atual do projétil (opcional)
+            printf("Projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
+        }
+        else
+        {
+            // Finaliza o disparo ao atingir o final da curva
+            disparado = false;
+            printf("Disparo concluído.\n");
         }
     }
+
 
     if(disparado1){     
         bool continua1; 
@@ -1211,15 +1245,15 @@ void display( void )
     DesenhaProjetil();
 
    // Exibe vaca
-    glPushMatrix();
-        glTranslatef(33.9337, 8.5, 20); // Posiciona a vaca nas novas coordenadas
-        glScalef(0.3f, 0.3f, 0.3f);
-        glRotatef(anguloDaVacaZ, 0, 0, 1);             // Rotação inicial (sem rotação)
-        glRotatef(anguloDaVacaX, 1, 0, 0);          // Rotação adicional no eixo X
-        glRotatef(anguloDaVacaY, 0, 1, 0);          // Rotação adicional no eixo X
-        // glColor3f(1.0f, 0.3f, 0.0f);    // Ajuste de cor se necessário
-        MundoVirtual[0].ExibeObjeto();     // Renderiza o objeto
-    glPopMatrix();
+    // glPushMatrix();
+    //     glTranslatef(33.9337, 8.5, 20); // Posiciona a vaca nas novas coordenadas
+    //     glScalef(0.3f, 0.3f, 0.3f);
+    //     glRotatef(anguloDaVacaZ, 0, 0, 1);             // Rotação inicial (sem rotação)
+    //     glRotatef(anguloDaVacaX, 1, 0, 0);          // Rotação adicional no eixo X
+    //     glRotatef(anguloDaVacaY, 0, 1, 0);          // Rotação adicional no eixo X
+    //     // glColor3f(1.0f, 0.3f, 0.0f);    // Ajuste de cor se necessário
+    //     MundoVirtual[0].ExibeObjeto();     // Renderiza o objeto
+    // glPopMatrix();
 
 
     DesenhaLimitesMapa();
@@ -1300,27 +1334,38 @@ void keyboard ( unsigned char key, int x, int y )
         ALVO = Ponto(0, 0, 0);
         break;  
     case ' ': // Resetar a posição
-        if (!disparado) // Verifica se o projétil não foi disparado
+        // if (!disparado) // Verifica se o projétil não foi disparado
+        // {
+        //     // Converte os ângulos para radianos
+        //     float radX = anguloPrincipal * M_PI / 180.0f; // Ângulo do canhão
+        //     float radY = (anguloCanhao) * M_PI / 180.0f; // Ângulo principal (se necessário)
+
+        //     disparado = true;
+
+        //     dirProjX = cos(radY) * sin(radX); // Direção no eixo X
+        //     dirProjY = sin(radY);             // Direção no eixo Y
+        //     dirProjZ = cos(radY) * cos(radX); // Direção no eixo Z
+            
+
+        //     // A posição inicial do projétil é a posição da ponta do canhão
+        //     projX = pontaX + dirProjX;
+        //     projY = pontaY + dirProjY;
+        //     projZ = pontaZ + dirProjZ;
+            
+
+        //     // Exibe a posição inicial do projétil
+        //     printf("Posição inicial do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
+        // }
+        if (!disparado)
         {
-            // Converte os ângulos para radianos
-            float radX = anguloPrincipal * M_PI / 180.0f; // Ângulo do canhão
-            float radY = (anguloCanhao) * M_PI / 180.0f; // Ângulo principal (se necessário)
-
             disparado = true;
+            t = 0.0f; // Reinicia o movimento ao longo da curva
 
-            dirProjX = cos(radY) * sin(radX); // Direção no eixo X
-            dirProjY = sin(radY);             // Direção no eixo Y
-            dirProjZ = cos(radY) * cos(radX); // Direção no eixo Z
-            
-
-            // A posição inicial do projétil é a posição da ponta do canhão
-            projX = pontaX + dirProjX;
-            projY = pontaY + dirProjY;
-            projZ = pontaZ + dirProjZ;
-            
-
-            // Exibe a posição inicial do projétil
-            printf("Posição inicial do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
+            // Defina os pontos de controle (ajuste conforme necessário)
+            P0x = pontaX; P0y = pontaY; P0z = pontaZ;            // Origem do disparo
+            P1x = pontaX + 5; P1y = pontaY + 10; P1z = pontaZ;   // Ponto de controle 1
+            P2x = pontaX + 10; P2y = pontaY + 5; P2z = pontaZ;   // Ponto de controle 2
+            P3x = pontaX + 15; P3y = pontaY; P3z = pontaZ - 5;   // Destino do disparo
         }
         if(!disparado1){
             float radX = anguloPrincipal * M_PI / 180.0f; // Ângulo do canhão            
@@ -1430,10 +1475,10 @@ int main ( int argc, char** argv )
 	glutSpecialFunc ( arrow_keys );
 	glutIdleFunc ( animate );
     
-    char Nome[] = "Vaca.tri";
-    MundoVirtual = new Objeto3D[5];
-    // carrega obj .tri
-    MundoVirtual[0].LeObjeto(Nome);
+    // char Nome[] = "Vaca.tri";
+    // MundoVirtual = new Objeto3D[5];
+    // // carrega obj .tri
+    // MundoVirtual[0].LeObjeto(Nome);
     //MundoVirtual[1].LeObjeto("watership.tri");
 	
     glutMainLoop ( );
