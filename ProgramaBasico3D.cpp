@@ -55,7 +55,7 @@ Temporizador T;
 double AccumDeltaT=0;
 
 
-GLfloat AspectRatio, angulo=0, anguloPrincipal = 180.0f;
+GLfloat AspectRatio, angulo=0, anguloPrincipal = 90.0f;
 
 // Controle do modo de projecao
 // 0: Projecao Paralela Ortografica; 1: Projecao Perspectiva
@@ -358,47 +358,77 @@ void animate()
 bool verificarColisao()
 {
     // Posições do paredão: O paredão vai de x = 6 até x = -7, de y = 0 e de z = -11 até z = 11
-    const float paredaoXMin = -7.0f;
-    const float paredaoXMax = 0.0f;
-    const float paredaoY = 0.0f; // O paredão está fixo no plano Y = 0
-    const float paredaoZMin = -10.0f;
-    const float paredaoZMax = -11.0f;
+    const float paredaoXMin = 6.0f;
+    const float paredaoXMax = 7.0f;
+    const float paredaoZMin = 4.0f; 
+    const float paredaoZMax = 16.0f; 
 
     // Verifica se a posição do projétil está dentro dos limites do paredão
-    if ( projZ <= paredaoZMin && projZ >= paredaoZMax)
+    if (projX >= paredaoXMin && projX <= paredaoXMax && projZ >= paredaoZMin && projZ <= paredaoZMax)
     {
         return true; // Colisão detectada
     }
     
     return false; // Sem colisão
 }
+
 bool verificarColisao2()
 {
     // Posições do paredão: O paredão vai de x = 6 até x = -7, de y = 0 e de z = -11 até z = 11
-    const float paredaoXMin = -7.0f;
-    const float paredaoXMax = 0.0f;
-    const float paredaoY = 0.0f; // O paredão está fixo no plano Y = 0
-    const float paredaoZMin = -10.0f;
-    const float paredaoZMax = -11.0f;
+    const float paredaoXMin = 6.0f;
+    const float paredaoXMax = 7.0f;
+    const float paredaoZMin = 4.0f; 
+    const float paredaoZMax = 16.0f; 
 
     // Verifica se a posição do projétil está dentro dos limites do paredão
-    if ( projZd <= paredaoZMin && projZd >= paredaoZMax)
+    if (projX >= paredaoXMin && projX <= paredaoXMax && projZ >= paredaoZMin && projZ <= paredaoZMax)
     {
         return true; // Colisão detectada
     }
     
     return false; // Sem colisão
 }
+
 void quebrarBloco(float projX, float projY, float projZ)
 {
+    // Primeiro, converta a posição do projétil para o sistema de coordenadas do paredão
+    // Aqui você já tem as transformações necessárias (inversão de translação e rotação)
+
+    // Definindo as transformações aplicadas ao paredão
+    const float transX = -18.0f; // Translação em X
+    const float transY = -1.0f;  // Translação em Y
+    const float transZ = 7.0f;   // Translação em Z
+    const float rotAngulo = 90.0f; // Ângulo de rotação
+
+    // Inversão da translação
+    projX -= transX;
+    projY -= transY + 7;
+    projZ -= transZ + 3;
+
+    // Agora aplicamos a inversa da rotação. A rotação foi feita no eixo Y, então aplicamos a rotação inversa no eixo Y.
+    float radAngulo = rotAngulo * M_PI / 180.0f; // Converte o ângulo para radianos
+    float cosAngulo = cos(-radAngulo);  // Cálculo para rotação inversa
+    float sinAngulo = sin(-radAngulo);
+
+    // Aplica a inversão da rotação para o eixo Y
+    float rotatedX = cosAngulo * projX + sinAngulo * projZ;
+    float rotatedZ = sinAngulo * projX - cosAngulo * projZ;
+
+    // Agora, o projX e projZ estão no sistema de coordenadas local do paredão
+    projX = rotatedX;
+    projZ = rotatedZ;
+
+    // Ajustando o valor de projY para garantir que o cálculo de blocoY esteja correto
+    // Se o paredão está centrado na origem, o cálculo de Y precisa ser ajustado
+    int blocoY = int(projY + altura / 2.0f);   // Converte a posição para índice da matriz
+
     // Calcula as coordenadas do bloco atingido
-    int blocoX = int((projX + largura / 2.0f)) ; // Converte a posição para índice da matriz
-    int blocoY = int((projY + altura / 2.0f)) - 7; // Converte a posição para índice da matriz
-    
+    int blocoX = int((projX + largura / 2.0f));  // Converte a posição para índice da matriz
+
+    // Verifica se a posição calculada está dentro dos limites do paredão
     if (blocoX >= 0 && blocoX < largura && blocoY >= 0 && blocoY < altura)
     {
-        cout << "blocoX" << blocoX << "blocoY" << blocoY;
-        paredao[blocoY][blocoX] = false; // Desativa o bloco atingido
+        paredao[blocoY][blocoX] = false; // Marca o bloco como destruído
     }
 }
 
@@ -412,8 +442,7 @@ void DesenhaProjetil()
         glPopMatrix();
                         
         // Atualiza a posição do projétil
-        projZ -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
-        projZd -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
+        projX -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
 
         printf("X: %f Y: %f Z: %f",projX, projY, projZ);
         // Verifica se o projétil atingiu o paredão (aproximadamente)
@@ -449,6 +478,8 @@ void DesenhaProjetil()
             glutSolidSphere(0.5, 10, 5);// Desenha o projétil como uma esfera
         glPopMatrix();
 
+        projXd -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
+
         if (verificarColisao2()) // Considera a posição do paredão
         {
             const int alcance = 1; // Alcance da destruição ao redor do impacto
@@ -471,7 +502,6 @@ void DesenhaProjetil()
             }
 
             disparado1 = false; // O projétil parou
-            // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
             std::cout << "Colisão com o paredão!" << std::endl;
         }
     }
@@ -627,56 +657,62 @@ void DesenhaQuadrado()
 void DesenhaParedao()
 {
     // Altura do paredão
-    const int altura = 15; // 15m
+    const int altura = 15; // 15 metros
     
-    // Largura do paredão (meio do cenário)
-    const int largura = 15; // Exemplo: ajusta conforme o tamanho maior do cenário
-    
+    // Largura do paredão (ajustável conforme a cena)
+    const int largura = 15; // 15 metros
+
+    // Empilha a transformação atual da matriz
     glPushMatrix();
 
-    // Gira o paredão para ficar perpendicular ao chão
-    glRotatef(90, 0, 60, 1);
+    // Gira o paredão para que fique perpendicular ao chão, se necessário
+    glRotatef(90, 0, 1, 0); // Ajustando rotação no eixo Y para uma melhor visualização
 
-    // Posiciona o paredão no meio do cenário
-    glTranslatef(-18, -1, 7);
+    // Posiciona o paredão no local desejado dentro do cenário
+    glTranslatef(-18.0f, -1.0f, 7.0f); // Translação para a posição do paredão
 
-    // Desenha os quadrados de 1m x 1m que compõem o paredão
-    for (int i = 0; i < altura; i++) // Altura (vertical)
+    // Desenha os quadrados de 1m x 1m
+    for (int i = 0; i < altura; i++) // Para cada linha (vertical)
     {
-        for (int j = 0; j < largura; j++) // Largura (horizontal)
+        for (int j = 0; j < largura; j++) // Para cada coluna (horizontal)
         {
-            if (paredao[i][j]) // Renderiza apenas os blocos ativos
+            if (paredao[i][j]) // Desenha apenas os blocos ativos
             {
-                
-                glPushMatrix();
-                glTranslatef(j, i, 0); // Move para a posição do quadrado
+                glPushMatrix(); // Empilha a matriz para cada bloco individual
 
-                // Ajusta as coordenadas de textura para que a textura se repita
-                glBindTexture(GL_TEXTURE_2D, TEX1);  // Aplica a textura
+                // Move para a posição do bloco
+                glTranslatef(j, i, 0); // Ajusta a posição com base na coordenada (j, i)
 
+                // Aplica a textura ao bloco
+                glBindTexture(GL_TEXTURE_2D, TEX1);
+
+                // Inicia o desenho do quadrado (bloco)
                 glBegin(GL_QUADS);
-                glColor3f(1.0, 1.0, 1.0); // Cor branca para a textura
+                glColor3f(1.0f, 1.0f, 1.0f); // Cor branca para a textura
 
-                // Vértices com coordenadas de textura ajustadas para repetição
-                glTexCoord2f(j / float(largura), i / float(altura)); // Coordenada de textura para o vértice (0,0)
+                // Definição dos vértices do quadrado e as coordenadas de textura
+                glTexCoord2f(j / float(largura), i / float(altura)); // (0, 0) coordenada de textura
                 glVertex3f(0, 0, 0);
 
-                glTexCoord2f((j + 1) / float(largura), i / float(altura)); // Coordenada de textura para o vértice (1,0)
+                glTexCoord2f((j + 1) / float(largura), i / float(altura)); // (1, 0)
                 glVertex3f(1, 0, 0);
 
-                glTexCoord2f((j + 1) / float(largura), (i + 1) / float(altura)); // Coordenada de textura para o vértice (1,1)
+                glTexCoord2f((j + 1) / float(largura), (i + 1) / float(altura)); // (1, 1)
                 glVertex3f(1, 1, 0);
 
-                glTexCoord2f(j / float(largura), (i + 1) / float(altura)); // Coordenada de textura para o vértice (0,1)
+                glTexCoord2f(j / float(largura), (i + 1) / float(altura)); // (0, 1)
                 glVertex3f(0, 1, 0);
 
-                glEnd();
-                glPopMatrix();
+                glEnd(); // Finaliza o desenho do quadrado
+                glPopMatrix(); // Restaura a matriz
             }
         }
     }
+
+    // Restaura as transformações
     glPopMatrix();
 }
+
 
 
 void DesenhaChao()
@@ -1126,7 +1162,7 @@ void display( void )
         DesenhaCanhao();    
 
         // Tamanho do canhão (distância da base à ponta)
-        float comprimentoCanhao = .0f; // Ajuste esse valor conforme o comprimento do canhão
+        float comprimentoCanhao = 0.0f; // Ajuste esse valor conforme o comprimento do canhão
 
         // Converte o ângulo para radianos
         float radAngulo = anguloPrincipal * M_PI / 180.0f;
@@ -1144,15 +1180,17 @@ void display( void )
         float direcaoXd = cos(radAngulo) * comprimentoCanhao; // Direção no eixo X
         float direcaoYd = sin(radAnguloCanhaod);                             // Direção no eixo Y (se necessário ajuste a rotação no Y)
         float direcaoZd = sin(radAngulo) * comprimentoCanhao; // Direção no eixo Z
+
+        float deslocamentoLateral = 2.0f;
         // A posição do cubo já é PosicaoDoObjeto
         // Agora, calculamos a posição da ponta do canhão com o deslocamento calculado
-        pontaX = PosicaoDoObjeto.x - 2 + direcaoX;
+        pontaX = PosicaoDoObjeto.x + direcaoX ;
         pontaY = PosicaoDoObjeto.y + direcaoY;
-        pontaZ = PosicaoDoObjeto.z + direcaoZ;
+        pontaZ = PosicaoDoObjeto.z + direcaoZ + deslocamentoLateral;
 
-        pontaXd = PosicaoDoObjeto.x  + 2 + direcaoXd;
+        pontaXd = PosicaoDoObjeto.x + direcaoXd ;
         pontaYd = PosicaoDoObjeto.y + direcaoYd;
-        pontaZd = PosicaoDoObjeto.z + direcaoZd;
+        pontaZd = PosicaoDoObjeto.z + direcaoZd - deslocamentoLateral; 
         //desenharLinhaDirecao(pontaX, pontaY, pontaZ, projX, projY, projZ);
 
         // Exibe a posição da ponta do canhão
@@ -1224,16 +1262,20 @@ void keyboard ( unsigned char key, int x, int y )
     case 'b':
         tipoVista = PlayerCam;
         break;
-    case 'w': zObs += 1; break; // Move para cima
-    case 's': zObs -= 1; break; // Move para baixo
+    case 'w': yObs += 1; break; // Move para cima
+    case 's': yObs -= 1; break; // Move para baixo
     case 'a': xObs -= 1; break; // Move para esquerda
     case 'd': xObs += 1; break; // Move para direita
     case 'n': 
         anguloCanhao += 5.0f;
+        if(anguloCanhao > 360)
+            anguloCanhao = 0;
         DirecaoDoCanhao.rotacionaY(anguloCanhao);
         break; // Move para direita
     case 'm':
-        anguloCanhaod += 5.0f; 
+        anguloCanhaod += 5.0f;
+        if(anguloCanhaod > 360)
+            anguloCanhaod = 0; 
         DirecaoDoCanhao.rotacionaY(anguloCanhao);
         break; // Move para direita
     case 'r': // Resetar a posição
@@ -1331,12 +1373,12 @@ void arrow_keys ( int a_keys, int x, int y )
         case GLUT_KEY_RIGHT:
             // Alterar o ângulo ao clicar a seta da direita
             anguloPrincipal -= 5.0f;
-            //PosicaoDoObjeto.rotacionaZ(anguloPrincipal);
+            //DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
             break;
         case GLUT_KEY_LEFT:
             // Alterar o ângulo ao clicar a seta da esquerda
             anguloPrincipal += 5.0f;
-            //PosicaoDoObjeto.rotacionaZ(anguloPrincipal);
+            //DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
             break;
         default:
             break;
@@ -1349,8 +1391,6 @@ void arrow_keys ( int a_keys, int x, int y )
         PosicaoDoObjeto.x = novoX;
         PosicaoDoObjeto.z = novoZ;
     }
-
-    atualizaCamera();
 }
 
 // **********************************************************************
