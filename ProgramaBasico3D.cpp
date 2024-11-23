@@ -83,22 +83,27 @@ GLfloat CameraMatrix[4][4];
 GLfloat InvCameraMatrix[4][4];
 GLuint TEX1, TEX2, TEX, TEX3;
 GLfloat anguloCanhao = 0.0f;
+GLfloat anguloCanhaod = 0.0f;
 Ponto PosicaoDoObjeto(0,0,4);
 Ponto DirecaoDoObjeto(1,0,0);
 Ponto DirecaoDoCanhao(1,0,0);
 ModoExibicao tipoVista {PlayerCam};
 float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
+float projXd = 0.0f, projYd = 0.0f, projZd = -10.0f; // Posição inicial do projétil
+
 float velocidadeProj = 0.5f; // Velocidade do projétil
 const float velocidadeObj = 0.5f; // Velocidade do objeto
 float pontaX, pontaY, pontaZ, dirProjX, dirProjY, dirProjZ = 0.0;
+float pontaXd, pontaYd, pontaZd, dirProjXd, dirProjYd, dirProjZd = 0.0;
 bool disparado = false; // Flag para indicar se o projétil foi disparado
+bool disparado1 = false; // Flag para indicar se o projétil foi disparado
 const int largura = 15;  // Número de blocos na largura do paredão
 const int altura = 15;   // Número de blocos na altura do paredão
 bool paredao[altura][largura]; // Matriz de blocos do paredão (true = ativo)
-const float LIMITE_MIN_X = -40; // Limite mínimo do mapa no eixo X
-const float LIMITE_MAX_X = 40; // Limite máximo do mapa no eixo X
-const float LIMITE_MIN_Z = -10; // Limite mínimo do mapa no eixo Z
-const float LIMITE_MAX_Z = 28; // Limite máximo do mapa no eixo Z
+const float LIMITE_MIN_X = -45; // Limite mínimo do mapa no eixo X
+const float LIMITE_MAX_X = 45; // Limite máximo do mapa no eixo X
+const float LIMITE_MIN_Z = -15; // Limite mínimo do mapa no eixo Z
+const float LIMITE_MAX_Z = 35; // Limite máximo do mapa no eixo Z
 
 
 typedef struct  // Struct para armazenar um ponto
@@ -367,6 +372,23 @@ bool verificarColisao()
     
     return false; // Sem colisão
 }
+bool verificarColisao2()
+{
+    // Posições do paredão: O paredão vai de x = 6 até x = -7, de y = 0 e de z = -11 até z = 11
+    const float paredaoXMin = -7.0f;
+    const float paredaoXMax = 0.0f;
+    const float paredaoY = 0.0f; // O paredão está fixo no plano Y = 0
+    const float paredaoZMin = -10.0f;
+    const float paredaoZMax = -11.0f;
+
+    // Verifica se a posição do projétil está dentro dos limites do paredão
+    if ( projZd <= paredaoZMin && projZd >= paredaoZMax)
+    {
+        return true; // Colisão detectada
+    }
+    
+    return false; // Sem colisão
+}
 void quebrarBloco(float projX, float projY, float projZ)
 {
     // Calcula as coordenadas do bloco atingido
@@ -388,9 +410,10 @@ void DesenhaProjetil()
             glTranslatef(projX, projY, projZ); // Posiciona o projétil
             glutSolidSphere(0.5, 10, 5);// Desenha o projétil como uma esfera
         glPopMatrix();
-        
+                        
         // Atualiza a posição do projétil
         projZ -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
+        projZd -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
 
         printf("X: %f Y: %f Z: %f",projX, projY, projZ);
         // Verifica se o projétil atingiu o paredão (aproximadamente)
@@ -414,12 +437,45 @@ void DesenhaProjetil()
                     }
                 }
             }
-
             disparado = false; // O projétil parou
             // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
             std::cout << "Colisão com o paredão!" << std::endl;
         }
     }
+
+    if(disparado1){      
+        glPushMatrix();
+            glTranslatef(projXd, projYd, projZd); // Posiciona o projétil
+            glutSolidSphere(0.5, 10, 5);// Desenha o projétil como uma esfera
+        glPopMatrix();
+
+        if (verificarColisao2()) // Considera a posição do paredão
+        {
+            const int alcance = 1; // Alcance da destruição ao redor do impacto
+
+            // Itera sobre os blocos ao redor (em 3 dimensões)
+            for (int dx = -alcance; dx <= alcance; ++dx)
+            {
+                for (int dy = -alcance; dy <= alcance; ++dy)
+                {
+                    for (int dz = -alcance; dz <= alcance; ++dz)
+                    {
+                        int blocoX = projXd + dx;
+                        int blocoY = projYd + dy;
+                        int blocoZ = projZd + dz;
+
+                        // Quebra o bloco na posição calculada
+                        quebrarBloco(blocoX, blocoY, blocoZ);
+                    }
+                }
+            }
+
+            disparado1 = false; // O projétil parou
+            // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
+            std::cout << "Colisão com o paredão!" << std::endl;
+        }
+    }
+    
 }
 void DesenhaCubo(float tamAresta)
 {
@@ -466,15 +522,6 @@ void DesenhaCubo(float tamAresta)
     glVertex3f(-tamAresta/2,  tamAresta/2, -tamAresta/2);
     glEnd();
 
-}
-void DesenhaParalelepipedo()
-{
-    glPushMatrix();
-        glTranslatef(0,0,-1);
-        glScalef(1,1,2);
-        glutSolidCube(2);
-        //DesenhaCubo(1);
-    glPopMatrix();
 }
 
 // **********************************************************************
@@ -576,6 +623,7 @@ void DesenhaQuadrado()
     
     glDisable(GL_TEXTURE_2D);  // Desativa o mapeamento de textura
 }
+
 void DesenhaParedao()
 {
     // Altura do paredão
@@ -804,7 +852,7 @@ void DesenhaCanhao() {
     // Desenha o segundo canhão no lado negativo do eixo X
     glPushMatrix();
     glTranslatef(1.0f, 1.0f, 1.2f); // Move o canhão para o lado negativo do eixo X
-    glRotatef(anguloCanhao, 0, 0, 1); // Rotaciona o canhão
+    glRotatef(anguloCanhaod, 0, 0, 1); // Rotaciona o canhão
     glScalef(2, 0.5, 0.5); // Escala o canhão
     glutSolidCube(1.0); // Desenha o canhão
     glPopMatrix(); // Restaura a matriz
@@ -840,7 +888,87 @@ void AtualizarPosicaoProjetil() {
         // Exibe a nova posição do projétil
         printf("Nova posição do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
     }
+    if (disparado1) {
+        // Atualiza a posição com base na direção e velocidade
+        projXd += dirProjXd * velocidadeProj; // Atualiza a posição no eixo X
+        projYd += dirProjYd * velocidadeProj; // Atualiza a posição no eixo Y
+        projZd += dirProjZd * velocidadeProj; // Atualiza a posição no eixo Z
+
+        // Exibe a nova posição do projétil
+        printf("Nova posição do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
+    }
+
+    if (disparado1) {
+        // Atualiza a posição com base na direção e velocidade
+        projXd += dirProjXd * velocidadeProj; // Atualiza a posição no eixo X
+        projYd += dirProjYd * velocidadeProj; // Atualiza a posição no eixo Y
+        projZd += dirProjZd * velocidadeProj; // Atualiza a posição no eixo Z
+
+        // Verificar se o projétil ultrapassou os limites do mapa
+        if (projXd < LIMITE_MIN_X || projXd > LIMITE_MAX_X || 
+            projZd < LIMITE_MIN_Z || projZd > LIMITE_MAX_Z) 
+        {
+            disparado1 = false; // Parar o projétil
+            std::cout << "Projétil saiu do mapa!" << std::endl;
+        }
+
+        // Exibe a nova posição do projétil
+        printf("Nova posição do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
+    }
 }
+
+void DesenhaParalelepipedoComTextura() {
+    glBindTexture(GL_TEXTURE_2D, TEX); // Vincula a textura
+    glEnable(GL_TEXTURE_2D); // Ativa a textura
+
+    glPushMatrix();
+    glTranslatef(0, 0, -1);
+    glScalef(2, 1, 3);
+
+    // Desenho manual do paralelepípedo
+    glDisable(GL_CULL_FACE); 
+    glBegin(GL_QUADS);
+    // Frente
+    glTexCoord2f(0, 0); glVertex3f(-1, -1, 1);
+    glTexCoord2f(1, 0); glVertex3f( 1, -1, 1);
+    glTexCoord2f(1, 1); glVertex3f( 1,  1, 1);
+    glTexCoord2f(0, 1); glVertex3f(-1,  1, 1);
+
+    // Trás
+    glTexCoord2f(0, 0); glVertex3f(-1, -1, -1);
+    glTexCoord2f(1, 0); glVertex3f( 1, -1, -1);
+    glTexCoord2f(1, 1); glVertex3f( 1,  1, -1);
+    glTexCoord2f(0, 1); glVertex3f(-1,  1, -1);
+
+    // Esquerda
+    glTexCoord2f(0, 0); glVertex3f(-1, -1, -1);
+    glTexCoord2f(1, 0); glVertex3f(-1, -1,  1);
+    glTexCoord2f(1, 1); glVertex3f(-1,  1,  1);
+    glTexCoord2f(0, 1); glVertex3f(-1,  1, -1);
+
+    // Direita
+    glTexCoord2f(0, 0); glVertex3f(1, -1, -1);
+    glTexCoord2f(1, 0); glVertex3f(1, -1,  1);
+    glTexCoord2f(1, 1); glVertex3f(1,  1,  1);
+    glTexCoord2f(0, 1); glVertex3f(1,  1, -1);
+
+    // Topo
+    glTexCoord2f(0, 0); glVertex3f(-1, 1, -1);
+    glTexCoord2f(1, 0); glVertex3f( 1, 1, -1);
+    glTexCoord2f(1, 1); glVertex3f( 1, 1,  1);
+    glTexCoord2f(0, 1); glVertex3f(-1, 1,  1);
+
+    // Base
+    glTexCoord2f(0, 0); glVertex3f(-1, -1, -1);
+    glTexCoord2f(1, 0); glVertex3f( 1, -1, -1);
+    glTexCoord2f(1, 1); glVertex3f( 1, -1,  1);
+    glTexCoord2f(0, 1); glVertex3f(-1, -1,  1);
+
+    glEnd();
+
+    glPopMatrix();
+}
+
 
 
 void DesenhaCuboComTextura(float tamAresta) {
@@ -980,7 +1108,7 @@ void display( void )
         glTranslatef ( PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z );
         glRotatef(anguloPrincipal,0,1,0);
         glBindTexture (GL_TEXTURE_2D, TEX);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
-        DesenhaCuboComTextura(1);//glutSolidCube(2);
+        DesenhaParalelepipedoComTextura();//glutSolidCube(2);
         glRotatef(270.0f, 0, 1, 0);
         DesenhaCanhao();    
 
@@ -990,6 +1118,7 @@ void display( void )
         // Converte o ângulo para radianos
         float radAngulo = anguloPrincipal * M_PI / 180.0f;
         float radAnguloCanhao = (anguloCanhao ) * M_PI / 180.0f;
+        float radAnguloCanhaod = (anguloCanhaod ) * M_PI / 180.0f;
 
         // A posição base do cubo já é PosicaoDoObjeto
         // A posição da ponta do canhão será calculada a partir dessa base com o ângulo de rotação
@@ -999,11 +1128,18 @@ void display( void )
         float direcaoY = sin(radAnguloCanhao);                             // Direção no eixo Y (se necessário ajuste a rotação no Y)
         float direcaoZ = sin(radAngulo) * comprimentoCanhao; // Direção no eixo Z
 
+        float direcaoXd = cos(radAngulo) * comprimentoCanhao; // Direção no eixo X
+        float direcaoYd = sin(radAnguloCanhaod);                             // Direção no eixo Y (se necessário ajuste a rotação no Y)
+        float direcaoZd = sin(radAngulo) * comprimentoCanhao; // Direção no eixo Z
         // A posição do cubo já é PosicaoDoObjeto
         // Agora, calculamos a posição da ponta do canhão com o deslocamento calculado
-        pontaX = PosicaoDoObjeto.x + direcaoX;
+        pontaX = PosicaoDoObjeto.x - 2 + direcaoX;
         pontaY = PosicaoDoObjeto.y + direcaoY;
         pontaZ = PosicaoDoObjeto.z + direcaoZ;
+
+        pontaXd = PosicaoDoObjeto.x  + 2 + direcaoXd;
+        pontaYd = PosicaoDoObjeto.y + direcaoYd;
+        pontaZd = PosicaoDoObjeto.z + direcaoZd;
         //desenharLinhaDirecao(pontaX, pontaY, pontaZ, projX, projY, projZ);
 
         // Exibe a posição da ponta do canhão
@@ -1016,8 +1152,7 @@ void display( void )
         //P.imprime("Ponto Instanciado: ", "\n");
     glPopMatrix();
 
-    glColor3f(0.8,0.8,0);
-    //glutSolidTeapot(2);
+    glColor3f(0.8,0.8,0);    
     DesenhaParedao();
     AtualizarPosicaoProjetil();
     DesenhaProjetil();
@@ -1085,7 +1220,7 @@ void keyboard ( unsigned char key, int x, int y )
         DirecaoDoCanhao.rotacionaY(anguloCanhao);
         break; // Move para direita
     case 'm':
-        anguloCanhao -= 5.0f; 
+        anguloCanhaod += 5.0f; 
         DirecaoDoCanhao.rotacionaY(anguloCanhao);
         break; // Move para direita
     case 'r': // Resetar a posição
@@ -1104,14 +1239,29 @@ void keyboard ( unsigned char key, int x, int y )
             dirProjX = cos(radY) * sin(radX); // Direção no eixo X
             dirProjY = sin(radY);             // Direção no eixo Y
             dirProjZ = cos(radY) * cos(radX); // Direção no eixo Z
+            
 
             // A posição inicial do projétil é a posição da ponta do canhão
             projX = pontaX + dirProjX;
             projY = pontaY + dirProjY;
             projZ = pontaZ + dirProjZ;
+            
 
             // Exibe a posição inicial do projétil
             printf("Posição inicial do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
+        }
+        if(!disparado1){
+            float radX = anguloPrincipal * M_PI / 180.0f; // Ângulo do canhão            
+            float radYd = (anguloCanhaod) * M_PI / 180.0f; // Ângulo principal (se necessário)
+        
+            disparado1 = true;
+
+            dirProjXd = cos(radYd) * sin(radX); // Direção no eixo X
+            dirProjYd = sin(radYd);             // Direção no eixo Y
+            dirProjZd = cos(radYd) * cos(radX); // Direção no eixo Z
+            projXd = pontaXd + dirProjXd;
+            projYd = pontaYd + dirProjYd;
+            projZd = pontaZd + dirProjZd;
         }
         break;   
     default:
