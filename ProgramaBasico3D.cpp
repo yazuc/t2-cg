@@ -389,7 +389,7 @@ bool verificarColisao2()
     return false; // Sem colisão
 }
 
-void quebrarBloco(float projX, float projY, float projZ)
+bool quebrarBloco(float projX, float projY, float projZ)
 {
     // Primeiro, converta a posição do projétil para o sistema de coordenadas do paredão
     // Aqui você já tem as transformações necessárias (inversão de translação e rotação)
@@ -428,12 +428,17 @@ void quebrarBloco(float projX, float projY, float projZ)
     // Verifica se a posição calculada está dentro dos limites do paredão
     if (blocoX >= 0 && blocoX < largura && blocoY >= 0 && blocoY < altura)
     {
-        paredao[blocoY][blocoX] = false; // Marca o bloco como destruído
+        if(paredao[blocoY][blocoX]){
+            return paredao[blocoY][blocoX] = false; // Marca o bloco como destruído
+        }
     }
+
+    return true;
 }
 
 void DesenhaProjetil()
 {
+    bool continua;
     if (disparado) 
     {
         glPushMatrix();
@@ -462,17 +467,18 @@ void DesenhaProjetil()
                         int blocoZ = projZ + dz;
 
                         // Quebra o bloco na posição calculada
-                        quebrarBloco(blocoX, blocoY, blocoZ);
+                        continua = quebrarBloco(blocoX, blocoY, blocoZ);
                     }
                 }
             }
-            disparado = false; // O projétil parou
+            disparado = continua; // O projétil parou
             // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
             std::cout << "Colisão com o paredão!" << std::endl;
         }
     }
 
-    if(disparado1){      
+    if(disparado1){     
+        bool continua1; 
         glPushMatrix();
             glTranslatef(projXd, projYd, projZd); // Posiciona o projétil
             glutSolidSphere(0.5, 10, 5);// Desenha o projétil como uma esfera
@@ -496,13 +502,13 @@ void DesenhaProjetil()
                         int blocoZ = projZd + dz;
 
                         // Quebra o bloco na posição calculada
-                        quebrarBloco(blocoX, blocoY, blocoZ);
+                        continua1 = quebrarBloco(blocoX, blocoY, blocoZ);                        
                     }
                 }
             }
-
-            disparado1 = false; // O projétil parou
+            disparado1 = continua1; // O projétil parou
             std::cout << "Colisão com o paredão!" << std::endl;
+
         }
     }
     
@@ -1336,7 +1342,7 @@ void atualizaCamera()
     float upZ = 0.0f;
 
     // Define a visão da câmera
-    glMatrixMode(GL_MODELVIEW);
+    //glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(eyeX, eyeY, eyeZ,  // Posição da câmera
               centerX, centerY, centerZ,  // Ponto para onde a câmera olha
