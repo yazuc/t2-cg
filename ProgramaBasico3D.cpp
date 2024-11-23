@@ -87,6 +87,9 @@ GLfloat anguloCanhaod = 0.0f;
 Ponto PosicaoDoObjeto(0,0,4);
 Ponto DirecaoDoObjeto(1,0,0);
 Ponto DirecaoDoCanhao(1,0,0);
+float anguloDaVacaX = -270.0;
+float anguloDaVacaY = 500.0;
+float anguloDaVacaZ = 40.0;
 ModoExibicao tipoVista {PlayerCam};
 float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
 float projXd = 0.0f, projYd = 0.0f, projZd = -10.0f; // Posição inicial do projétil
@@ -1198,7 +1201,7 @@ void display( void )
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
         //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
 
-        PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");
+        //PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");
         //P.imprime("Ponto Instanciado: ", "\n");
     glPopMatrix();
 
@@ -1207,14 +1210,17 @@ void display( void )
     AtualizarPosicaoProjetil();
     DesenhaProjetil();
 
-    //Exibe vaca
-    // glPushMatrix();
-    //     glTranslatef ( 0,0,0 );
-    //     glRotatef(65,0,0,1);
-    //     glRotatef(30.0,1,0,0);
-    //     //glColor3f(1.0f,0.3f,0.0f);
-    //     MundoVirtual[0].ExibeObjeto();
-    // glPopMatrix();
+   // Exibe vaca
+    glPushMatrix();
+        glTranslatef(33.9337, 8.5, 20); // Posiciona a vaca nas novas coordenadas
+        glScalef(0.3f, 0.3f, 0.3f);
+        glRotatef(anguloDaVacaZ, 0, 0, 1);             // Rotação inicial (sem rotação)
+        glRotatef(anguloDaVacaX, 1, 0, 0);          // Rotação adicional no eixo X
+        glRotatef(anguloDaVacaY, 0, 1, 0);          // Rotação adicional no eixo X
+        // glColor3f(1.0f, 0.3f, 0.0f);    // Ajuste de cor se necessário
+        MundoVirtual[0].ExibeObjeto();     // Renderiza o objeto
+    glPopMatrix();
+
 
     DesenhaLimitesMapa();
 
@@ -1273,6 +1279,18 @@ void keyboard ( unsigned char key, int x, int y )
         break; // Move para direita
     case 'm':
         anguloCanhaod += 5.0f;
+        if(anguloCanhaod > 360)
+            anguloCanhaod = 0; 
+        DirecaoDoCanhao.rotacionaY(anguloCanhao);
+        break; // Move para direita
+    case 'c': 
+        anguloCanhao -= 5.0f;
+        if(anguloCanhao > 360)
+            anguloCanhao = 0;
+        DirecaoDoCanhao.rotacionaY(anguloCanhao);
+        break; // Move para direita
+    case 'v':
+        anguloCanhaod -= 5.0f;
         if(anguloCanhaod > 360)
             anguloCanhaod = 0; 
         DirecaoDoCanhao.rotacionaY(anguloCanhao);
@@ -1412,10 +1430,10 @@ int main ( int argc, char** argv )
 	glutSpecialFunc ( arrow_keys );
 	glutIdleFunc ( animate );
     
-    //char Nome[] = "Vaca.tri";
-    //MundoVirtual = new Objeto3D[5];
-    //carrega obj .tri
-    //MundoVirtual[0].LeObjeto(Nome);
+    char Nome[] = "Vaca.tri";
+    MundoVirtual = new Objeto3D[5];
+    // carrega obj .tri
+    MundoVirtual[0].LeObjeto(Nome);
     //MundoVirtual[1].LeObjeto("watership.tri");
 	
     glutMainLoop ( );
