@@ -635,10 +635,10 @@ void DesenhaParedao()
     glPushMatrix();
 
     // Gira o paredão para ficar perpendicular ao chão
-    glRotatef(0, 0, 0, 1);
+    glRotatef(90, 0, 60, 1);
 
     // Posiciona o paredão no meio do cenário
-    glTranslatef(-7, -1, -10);
+    glTranslatef(-18, -1, 7);
 
     // Desenha os quadrados de 1m x 1m que compõem o paredão
     for (int i = 0; i < altura; i++) // Altura (vertical)
@@ -790,13 +790,26 @@ void PosicUser()
             0.0,0.0,-1.0);
     }
     if(tipoVista == PlayerCam){
-        // A câmera segue o jogador
-        OBS = Ponto(PosicaoDoObjeto.x, PosicaoDoObjeto.y + 5.0f, PosicaoDoObjeto.z + 10.0f); // Posição atrás e acima do jogador
-        ALVO = Ponto(PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z);               // Foca no jogador
+         // Converter o ângulo principal para radianos
+        float rad = anguloPrincipal * M_PI / 180.0f;
 
+        // Calcular a posição da câmera ao redor do jogador
+        float distancia = 10.0f; // Distância horizontal da câmera ao jogador
+        float altura = 5.0f;     // Altura da câmera em relação ao jogador
+
+        OBS = Ponto(
+            PosicaoDoObjeto.x - distancia * sin(rad),  // Coordenada X
+            PosicaoDoObjeto.y + altura,               // Coordenada Y (altura)
+            PosicaoDoObjeto.z - distancia * cos(rad)  // Coordenada Z
+        );
+
+        // Focar no jogador
+        ALVO = Ponto(PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z);
+
+        // Configurar a visão com gluLookAt
         gluLookAt(OBS.x, OBS.y, OBS.z,   // Posição do Observador
-                  ALVO.x, ALVO.y, ALVO.z, // Posição do Alvo
-                  0.0, 1.0, 0.0); 
+                ALVO.x, ALVO.y, ALVO.z, // Posição do Alvo
+                0.0, 1.0, 0.0);    
     }
     ALVO = Ponto(0, 0, 0);
 
@@ -1148,7 +1161,7 @@ void display( void )
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
         //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
 
-        //PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");
+        PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");
         //P.imprime("Ponto Instanciado: ", "\n");
     glPopMatrix();
 
@@ -1318,12 +1331,12 @@ void arrow_keys ( int a_keys, int x, int y )
         case GLUT_KEY_RIGHT:
             // Alterar o ângulo ao clicar a seta da direita
             anguloPrincipal -= 5.0f;
-            DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
+            //PosicaoDoObjeto.rotacionaZ(anguloPrincipal);
             break;
         case GLUT_KEY_LEFT:
             // Alterar o ângulo ao clicar a seta da esquerda
             anguloPrincipal += 5.0f;
-            DirecaoDoObjeto.rotacionaZ(anguloPrincipal);
+            //PosicaoDoObjeto.rotacionaZ(anguloPrincipal);
             break;
         default:
             break;
