@@ -94,6 +94,7 @@ ModoExibicao tipoVista {PlayerCam};
 float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
 float projXd = 0.0f, projYd = 0.0f, projZd = -10.0f; // Posição inicial do projétil
 
+int pontuacao = 0;
 float velocidadeProj = 0.5f; // Velocidade do projétil
 const float velocidadeObj = 0.5f; // Velocidade do objeto
 float pontaX, pontaY, pontaZ, dirProjX, dirProjY, dirProjZ = 0.0;
@@ -121,6 +122,16 @@ float dt = 0.01f; // Incremento de t para o movimento
 float td = 0.0f;  // Parâmetro da curva (de 0 a 1)
 float dtd = 0.01f; // Incremento de t para o movimento
 
+const int NUM_OBJETOS = 10;
+
+struct Objeto {
+    float x, y, z;       // Centro do objeto
+    float largura, altura, profundidade; // Dimensões
+    int tipo;        // 1 para inimigo, 2 para amigo, 3 para canhão
+    bool ativo;          // true se o objeto ainda não foi atingido
+};
+
+Objeto objetos[NUM_OBJETOS]; // Matriz estática para armazenar os objetos
 
 typedef struct  // Struct para armazenar um ponto
 {
@@ -224,6 +235,32 @@ void Objeto3D::ExibeObjeto()
         glVertex3f(faces[i].P3.X, faces[i].P3.Y, faces[i].P3.Z); // Vértice 3
     }
     glEnd(); // Fim do desenho
+}
+
+void inicializarObjetos() {
+    srand(time(0)); // Semente para posições aleatórias
+    float coordenadas[10][2] = {
+        {30, 24},
+        {30, 16},
+        {30, 8},
+        {30, 0},
+        {30, -8},
+        {15, 24},
+        {15, 16},
+        {15, 8},
+        {15, 0},
+        {15, -8},
+    };
+    for (int i = 0; i < NUM_OBJETOS; i++) {
+        objetos[i].x = coordenadas[i][0];
+        objetos[i].y = 0;
+        objetos[i].z = coordenadas[i][1];
+        objetos[i].largura = (i < 5) ? 3.0f : 2.0f; // Inimigos maiores
+        objetos[i].altura = (i < 5) ? 3.0f : 2.0f;
+        objetos[i].profundidade = (i < 5) ? 3.0f : 2.0f;
+        objetos[i].tipo = (i < 5) ? 1 : 2; // Os primeiros 5 são inimigos
+        objetos[i].ativo = true;     // Todos começam ativos
+    }
 }
 
 void inicializarParedao()
@@ -339,6 +376,7 @@ void init(void)
     VetorAlvo = ALVO - OBS;        
     initTexture();
     inicializarParedao();
+    inicializarObjetos();
 }
 
 // **********************************************************************
@@ -368,6 +406,47 @@ void animate()
     }
 }
 
+bool verificarColisoesObjetosPiso(float x, float y, float z) {
+    for (int i = 0; i < NUM_OBJETOS; i++) {
+        if (!objetos[i].ativo) continue; // Ignorar objetos já atingidos
+
+        const Objeto& obj = objetos[i];
+
+        // Verifica se o projétil está dentro do volume do objeto
+        bool colidiu =
+            x >= obj.x - obj.largura / 2 && x <= obj.x + obj.largura / 2 &&
+            y >= obj.y - obj.altura / 2 && y <= obj.y + obj.altura / 2 &&
+            z >= obj.z - obj.profundidade / 2 && z <= obj.z + obj.profundidade / 2;
+
+        if (colidiu) {
+            // Atualiza pontuação
+            if (obj.tipo == 1) {
+                pontuacao += 10;
+                std::cout << "Atingiu inimigo! Pontuação: " << pontuacao << std::endl;
+            } else if (obj.tipo == 2) {
+                pontuacao -= 10;
+                std::cout << "Atingiu amigo! Pontuação: " << pontuacao << std::endl;
+            } else {
+                std::cout << "Fim de jogo! Pontuação final: " << pontuacao << std::endl;
+                exit(0);
+            }
+            objetos[i].ativo = false; // Marca o objeto como atingido
+            return false; // Evita múltiplas colisões
+        }
+    }
+
+    // Colisão com o piso
+    // if (z >= LIMITE_MIN_Z && z <= LIMITE_MAX_Z && x >= LIMITE_MIN_X && x <= LIMITE_MAX_X && y < 0.0f) {
+    //     pontuacao -= 5;
+    //     // TODO: ADICIONAR QUEBRA DO PISO
+    //     std::cout << "Atingiu piso! Pontuação: " << pontuacao << std::endl;
+    //     // Finaliza o disparo ao atingir o final da curva
+    //     return false; // Evita múltiplas colisões
+    // }
+
+    return true;
+}
+
 // **********************************************************************
 //  void DesenhaCubo()
 // **********************************************************************
@@ -382,6 +461,8 @@ bool verificarColisao()
     // Verifica se a posição do projétil está dentro dos limites do paredão
     if (projX >= paredaoXMin && projX <= paredaoXMax && projZ >= paredaoZMin && projZ <= paredaoZMax)
     {
+        pontuacao += 5;
+        std::cout << "Atingiu paredão! Pontuação: " << pontuacao << std::endl;
         return true; // Colisão detectada
     }
     
@@ -399,6 +480,8 @@ bool verificarColisao2()
     // Verifica se a posição do projétil está dentro dos limites do paredão
     if (projX >= paredaoXMin && projX <= paredaoXMax && projZ >= paredaoZMin && projZ <= paredaoZMax)
     {
+        pontuacao += 5;
+        std::cout << "Atingiu paredão! Pontuação: " << pontuacao << std::endl;
         return true; // Colisão detectada
     }
     
@@ -450,6 +533,20 @@ bool quebrarBloco(float projX, float projY, float projZ)
     }
 
     return true;
+}
+
+void DesenhaObjetos() {
+    for (int i = 0; i < NUM_OBJETOS; i++) {
+        if (!objetos[i].ativo) continue; // Ignorar objetos inativos
+
+        const Objeto& obj = objetos[i];
+
+        glPushMatrix();
+        glTranslatef(obj.x, obj.y, obj.z);
+        glScalef(obj.largura, obj.altura, obj.profundidade);
+        glutSolidCube(1.0); // Desenha o objeto como um cubo escalado
+        glPopMatrix();
+    }
 }
 
 void DesenhaProjetil()
@@ -535,6 +632,8 @@ void DesenhaProjetil()
                 // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
                 std::cout << "Colisão com o paredão!" << std::endl;
             }
+            continua = verificarColisoesObjetosPiso(projX, projY, projZ);
+            disparado = continua;
         }
         else
         {
@@ -623,6 +722,8 @@ void DesenhaProjetil()
                 // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
                 std::cout << "Colisão com o paredão!" << std::endl;
             }
+            continua1 = verificarColisoesObjetosPiso(projXd, projYd, projZd);
+            disparado1 = continua;
         }
         else
         {
@@ -1324,8 +1425,10 @@ void display( void )
 
     glColor3f(0.8,0.8,0);    
     DesenhaParedao();
+    DesenhaObjetos();
     //AtualizarPosicaoProjetil();
     DesenhaProjetil();
+
 
    // Exibe vaca
     // glPushMatrix();
