@@ -644,7 +644,7 @@ void DesenhaObjetos() {
         glTranslatef(obj.x, obj.y, obj.z);
         glColor3f(obj.r, obj.g, obj.b);
         glScalef(obj.largura, obj.altura, obj.profundidade);
-        glutSolidCube(1.0); // Desenha o objeto como um cubo escalado
+        DrawModel(model);
         glPopMatrix();
     }
 }
@@ -1478,8 +1478,6 @@ void display( void )
     //     // glColor3f(1.0f, 0.3f, 0.0f);    // Ajuste de cor se necessário
     //     MundoVirtual[0].ExibeObjeto();     // Renderiza o objeto
     // glPopMatrix();
-    DrawModel(model);
-
 
     DesenhaLimitesMapa();
 
