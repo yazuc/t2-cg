@@ -435,15 +435,6 @@ bool verificarColisoesObjetosPiso(float x, float y, float z) {
         }
     }
 
-    // Colisão com o piso
-    // if (z >= LIMITE_MIN_Z && z <= LIMITE_MAX_Z && x >= LIMITE_MIN_X && x <= LIMITE_MAX_X && y < 0.0f) {
-    //     pontuacao -= 5;
-    //     // TODO: ADICIONAR QUEBRA DO PISO
-    //     std::cout << "Atingiu piso! Pontuação: " << pontuacao << std::endl;
-    //     // Finaliza o disparo ao atingir o final da curva
-    //     return false; // Evita múltiplas colisões
-    // }
-
     return true;
 }
 
@@ -637,6 +628,12 @@ void DesenhaProjetil()
         }
         else
         {
+            // Colisão com o piso
+            if (projZ >= LIMITE_MIN_Z && projZ <= LIMITE_MAX_Z && projX >= LIMITE_MIN_X && projX <= LIMITE_MAX_X && projY <= 0.0f) {
+                pontuacao -= 5;
+                // TODO: ADICIONAR QUEBRA DO PISO
+                std::cout << "Atingiu piso! Pontuação: " << pontuacao << std::endl;
+            }
             // Finaliza o disparo ao atingir o final da curva
             disparado = false;
             printf("Disparo concluído.\n");
@@ -727,6 +724,13 @@ void DesenhaProjetil()
         }
         else
         {
+            // Colisão com o piso
+            if (projZd >= LIMITE_MIN_Z && projZd <= LIMITE_MAX_Z && projXd >= LIMITE_MIN_X && projXd <= LIMITE_MAX_X && projYd <= 0.0f) {
+                pontuacao -= 5;
+                // TODO: ADICIONAR QUEBRA DO PISO
+                std::cout << "Atingiu piso! Pontuação: " << pontuacao << std::endl;
+            }
+
             // Finaliza o disparo ao atingir o final da curva
             disparado1 = false;
             printf("Disparo concluído.\n");
