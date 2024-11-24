@@ -133,6 +133,11 @@ struct Objeto {
 
 Objeto objetos[NUM_OBJETOS]; // Matriz estática para armazenar os objetos
 
+const int larguraPiso = 40; // Número de blocos na largura do piso
+const int profundidadePiso = 40; // Número de blocos na profundidade do piso
+bool pisoEsquerda[larguraPiso][profundidadePiso]; // Matriz de blocos do piso da esquerda (true = ativo)
+bool pisoDireita[larguraPiso][profundidadePiso]; // Matriz de blocos do piso da direita (true = ativo)
+
 typedef struct  // Struct para armazenar um ponto
 {
     float X,Y,Z;
@@ -235,6 +240,15 @@ void Objeto3D::ExibeObjeto()
         glVertex3f(faces[i].P3.X, faces[i].P3.Y, faces[i].P3.Z); // Vértice 3
     }
     glEnd(); // Fim do desenho
+}
+
+void inicializarPisos() {
+    for (int i = 0; i < larguraPiso; i++) {
+        for (int j = 0; j < profundidadePiso; j++) {
+            pisoEsquerda[i][j] = true; // Todos os ladrilhos estão presentes inicialmente
+            pisoDireita[i][j] = true; // Todos os ladrilhos estão presentes inicialmente
+        }
+    }
 }
 
 void inicializarObjetos() {
@@ -375,6 +389,7 @@ void init(void)
     OBS = Ponto(0,3,10);
     VetorAlvo = ALVO - OBS;        
     initTexture();
+    inicializarPisos();
     inicializarParedao();
     inicializarObjetos();
 }
@@ -477,6 +492,34 @@ bool verificarColisao2()
     }
     
     return false; // Sem colisão
+}
+
+void quebrarBlocoPiso(float x, float z) {
+    const int alcance = 1; // Alcance de destruição (1 bloco ao redor)
+
+    bool areaEsquerda = (x < 0); // Determina se está na área esquerda ou direita
+    bool (&pisoAtual)[larguraPiso][profundidadePiso] = areaEsquerda ? pisoEsquerda : pisoDireita;
+
+    // Ajusta o deslocamento para lidar com as coordenadas locais de cada piso
+    float xOffset = areaEsquerda ? LIMITE_MIN_X : 0.0f;
+    float zOffset = LIMITE_MIN_Z;
+
+    // Converte a posição do projétil para índices da matriz
+    int blocoX = int((x - xOffset) / ((LIMITE_MAX_X - LIMITE_MIN_X) / 2) * larguraPiso);
+    int blocoZ = int((z - zOffset) / (LIMITE_MAX_Z - LIMITE_MIN_Z) * profundidadePiso);
+
+    // Garante que os índices estão dentro dos limites da matriz
+    for (int dx = -alcance; dx <= alcance; dx++) {
+        for (int dz = -alcance; dz <= alcance; dz++) {
+            int vizinhoX = blocoX + dx;
+            int vizinhoZ = blocoZ + dz;
+
+            if (vizinhoX >= 0 && vizinhoX < larguraPiso &&
+                vizinhoZ >= 0 && vizinhoZ < profundidadePiso) {
+                pisoAtual[vizinhoX][vizinhoZ] = false; // Marca o ladrilho como destruído
+            }
+        }
+    }
 }
 
 bool quebrarBloco(float projX, float projY, float projZ)
@@ -631,7 +674,7 @@ void DesenhaProjetil()
             // Colisão com o piso
             if (projZ >= LIMITE_MIN_Z && projZ <= LIMITE_MAX_Z && projX >= LIMITE_MIN_X && projX <= LIMITE_MAX_X && projY <= 0.0f) {
                 pontuacao -= 5;
-                // TODO: ADICIONAR QUEBRA DO PISO
+                quebrarBlocoPiso(projX, projZ); // Quebra o bloco do piso colidido e os adjacentes
                 std::cout << "Atingiu piso! Pontuação: " << pontuacao << std::endl;
             }
             // Finaliza o disparo ao atingir o final da curva
@@ -727,7 +770,7 @@ void DesenhaProjetil()
             // Colisão com o piso
             if (projZd >= LIMITE_MIN_Z && projZd <= LIMITE_MAX_Z && projXd >= LIMITE_MIN_X && projXd <= LIMITE_MAX_X && projYd <= 0.0f) {
                 pontuacao -= 5;
-                // TODO: ADICIONAR QUEBRA DO PISO
+                quebrarBlocoPiso(projXd, projZd); // Quebra o bloco do piso colidido e os adjacentes
                 std::cout << "Atingiu piso! Pontuação: " << pontuacao << std::endl;
             }
 
@@ -832,17 +875,16 @@ void DesenhaLadrilho(int corBorda, int corDentro)
 //
 //
 // **********************************************************************
-void DesenhaPiso()
-{
-    srand(100); // usa uma semente fixa para gerar sempre as mesma cores no piso
+void DesenhaPiso(bool pisoAtual[larguraPiso][profundidadePiso]) {
+    srand(100); // Usa uma semente fixa para gerar sempre as mesmas cores no piso
     glPushMatrix();
     glTranslated(CantoEsquerdo.x, CantoEsquerdo.y, CantoEsquerdo.z);
-    for(int x=-20; x<20;x++)
-    {
+    for (int x = 0; x < larguraPiso; x++) {
         glPushMatrix();
-        for(int z=-20; z<20;z++)
-        {
-            DesenhaLadrilho(MediumGoldenrod, rand()%40);
+        for (int z = 0; z < profundidadePiso; z++) {
+            if (pisoAtual[x][z]) { // Desenha apenas os ladrilhos ativos
+                DesenhaLadrilho(MediumGoldenrod, rand() % 40);
+            }
             glTranslated(0, 0, 1);
         }
         glPopMatrix();
@@ -943,11 +985,11 @@ void DesenhaChao()
 {
     glPushMatrix();
         glTranslated(-20, 0, 0);
-        DesenhaPiso();
+        DesenhaPiso(pisoEsquerda);
     glPopMatrix();
     glPushMatrix();
         glTranslated(20, 0, 0);
-        DesenhaPiso();
+        DesenhaPiso(pisoDireita);
     glPopMatrix();
 }
 // **********************************************************************
