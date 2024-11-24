@@ -126,6 +126,7 @@ const int NUM_OBJETOS = 10;
 
 struct Objeto {
     float x, y, z;       // Centro do objeto
+    float r, g, b;
     float largura, altura, profundidade; // Dimensões
     int tipo;        // 1 para inimigo, 2 para amigo, 3 para canhão
     bool ativo;          // true se o objeto ainda não foi atingido
@@ -269,6 +270,9 @@ void inicializarObjetos() {
         objetos[i].x = coordenadas[i][0];
         objetos[i].y = 0;
         objetos[i].z = coordenadas[i][1];
+        objetos[i].r = static_cast<float>(rand()) / RAND_MAX;
+        objetos[i].g = static_cast<float>(rand()) / RAND_MAX;
+        objetos[i].b = static_cast<float>(rand()) / RAND_MAX;
         objetos[i].largura = (i < 5) ? 3.0f : 2.0f; // Inimigos maiores
         objetos[i].altura = (i < 5) ? 3.0f : 2.0f;
         objetos[i].profundidade = (i < 5) ? 3.0f : 2.0f;
@@ -577,6 +581,7 @@ void DesenhaObjetos() {
 
         glPushMatrix();
         glTranslatef(obj.x, obj.y, obj.z);
+        glColor3f(obj.r, obj.g, obj.b);
         glScalef(obj.largura, obj.altura, obj.profundidade);
         glutSolidCube(1.0); // Desenha o objeto como um cubo escalado
         glPopMatrix();
@@ -587,43 +592,6 @@ void DesenhaProjetil()
 {
     bool continua;
     bool continua1;
-    // if (disparado) 
-    // {
-    //     glPushMatrix();
-    //         glTranslatef(projX, projY, projZ); // Posiciona o projétil
-    //         glutSolidSphere(0.5, 10, 5);// Desenha o projétil como uma esfera
-    //     glPopMatrix();
-                        
-    //     // Atualiza a posição do projétil
-    //     projX -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
-
-    //     printf("X: %f Y: %f Z: %f",projX, projY, projZ);
-    //     // Verifica se o projétil atingiu o paredão (aproximadamente)
-    //     if (verificarColisao()) // Considera a posição do paredão
-    //     {
-    //         const int alcance = 1; // Alcance da destruição ao redor do impacto
-
-    //         // Itera sobre os blocos ao redor (em 3 dimensões)
-    //         for (int dx = -alcance; dx <= alcance; ++dx)
-    //         {
-    //             for (int dy = -alcance; dy <= alcance; ++dy)
-    //             {
-    //                 for (int dz = -alcance; dz <= alcance; ++dz)
-    //                 {
-    //                     int blocoX = projX + dx;
-    //                     int blocoY = projY + dy;
-    //                     int blocoZ = projZ + dz;
-
-    //                     // Quebra o bloco na posição calculada
-    //                     continua = quebrarBloco(blocoX, blocoY, blocoZ);
-    //                 }
-    //             }
-    //         }
-    //         disparado = continua; // O projétil parou
-    //         // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
-    //         std::cout << "Colisão com o paredão!" << std::endl;
-    //     }
-    // }
     if (disparado)
     {
         glPushMatrix();
@@ -682,42 +650,6 @@ void DesenhaProjetil()
             printf("Disparo concluído.\n");
         }
     }
-
-
-    // if(disparado1){     
-    //     bool continua1; 
-    //     glPushMatrix();
-    //         glTranslatef(projXd, projYd, projZd); // Posiciona o projétil
-    //         glutSolidSphere(0.5, 10, 5);// Desenha o projétil como uma esfera
-    //     glPopMatrix();
-
-    //     projXd -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
-
-    //     if (verificarColisao2()) // Considera a posição do paredão
-    //     {
-    //         const int alcance = 1; // Alcance da destruição ao redor do impacto
-
-    //         // Itera sobre os blocos ao redor (em 3 dimensões)
-    //         for (int dx = -alcance; dx <= alcance; ++dx)
-    //         {
-    //             for (int dy = -alcance; dy <= alcance; ++dy)
-    //             {
-    //                 for (int dz = -alcance; dz <= alcance; ++dz)
-    //                 {
-    //                     int blocoX = projXd + dx;
-    //                     int blocoY = projYd + dy;
-    //                     int blocoZ = projZd + dz;
-
-    //                     // Quebra o bloco na posição calculada
-    //                     continua1 = quebrarBloco(blocoX, blocoY, blocoZ);                        
-    //                 }
-    //             }
-    //         }
-    //         disparado1 = continua1; // O projétil parou
-    //         std::cout << "Colisão com o paredão!" << std::endl;
-
-    //     }
-    // }
 
     if (disparado1)
     {
@@ -978,8 +910,6 @@ void DesenhaParedao()
     // Restaura as transformações
     glPopMatrix();
 }
-
-
 
 void DesenhaChao()
 {
@@ -1425,6 +1355,7 @@ void display( void )
         glBindTexture (GL_TEXTURE_2D, TEX);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
         DesenhaParalelepipedoComTextura();//glutSolidCube(2);
         glRotatef(270.0f, 0, 1, 0);
+        glColor3f(0,0,0);
         DesenhaCanhao();    
 
         // Tamanho do canhão (distância da base à ponta)
@@ -1469,9 +1400,9 @@ void display( void )
         //P.imprime("Ponto Instanciado: ", "\n");
     glPopMatrix();
 
-    glColor3f(0.8,0.8,0);    
     DesenhaParedao();
     DesenhaObjetos();
+    glColor3f(0.8,0.8,0);    
     //AtualizarPosicaoProjetil();
     DesenhaProjetil();
 
