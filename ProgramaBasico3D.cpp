@@ -16,7 +16,6 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include <iostream>
 
 using namespace std;
 
@@ -42,6 +41,21 @@ using namespace std;
 #include "Instancia.h"
 #include "Tools.h"
 #include "ImageClass.h"
+
+
+struct Vertex {
+    float x, y, z;
+};
+
+struct Face {
+    std::vector<int> vertexIndices; // Índices dos vértices
+};
+
+// Estrutura para armazenar o modelo
+struct Model {
+    std::vector<Vertex> vertices; // Lista de vértices
+    std::vector<Face> faces;      // Lista de faces
+};
 
 enum ModoExibicao {
     Jogador,
@@ -93,6 +107,7 @@ float anguloDaVacaZ = 40.0;
 ModoExibicao tipoVista {PlayerCam};
 float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
 float projXd = 0.0f, projYd = 0.0f, projZd = -10.0f; // Posição inicial do projétil
+Model model;
 
 int pontuacao = 0;
 float velocidadeProj = 0.5f; // Velocidade do projétil
@@ -242,6 +257,52 @@ void Objeto3D::ExibeObjeto()
     }
     glEnd(); // Fim do desenho
 }
+
+bool LoadOBJ(const std::string& filePath, Model& model) {
+    std::ifstream file(filePath);
+    if (!file.is_open()) {
+        std::cerr << "Erro ao abrir o arquivo: " << filePath << std::endl;
+        return false;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string prefix;
+        iss >> prefix;
+
+        if (prefix == "v") { // Vértices
+            Vertex vertex;
+            iss >> vertex.x >> vertex.y >> vertex.z;
+            model.vertices.push_back(vertex);
+        } else if (prefix == "f") { // Faces
+            Face face;
+            std::string vertexData;
+            while (iss >> vertexData) {
+                std::istringstream vss(vertexData);
+                std::string vertexIndex;
+                std::getline(vss, vertexIndex, '/'); // Pega apenas o índice do vértice
+                face.vertexIndices.push_back(std::stoi(vertexIndex) - 1); // Índices começam em 1 no .obj
+            }
+            model.faces.push_back(face);
+        }
+    }
+
+    file.close();
+    return true;
+}
+
+void DrawModel(const Model& model) {
+    glBegin(GL_TRIANGLES);
+    for (const auto& face : model.faces) {
+        for (const auto& index : face.vertexIndices) {
+            const Vertex& vertex = model.vertices[index];
+            glVertex3f(vertex.x, vertex.y, vertex.z);
+        }
+    }
+    glEnd();
+}
+
 
 void inicializarPisos() {
     for (int i = 0; i < larguraPiso; i++) {
@@ -1417,6 +1478,7 @@ void display( void )
     //     // glColor3f(1.0f, 0.3f, 0.0f);    // Ajuste de cor se necessário
     //     MundoVirtual[0].ExibeObjeto();     // Renderiza o objeto
     // glPopMatrix();
+    DrawModel(model);
 
 
     DesenhaLimitesMapa();
@@ -1684,6 +1746,10 @@ int main ( int argc, char** argv )
     // // carrega obj .tri
     // MundoVirtual[0].LeObjeto(Nome);
     //MundoVirtual[1].LeObjeto("watership.tri");
+
+     if (!LoadOBJ("Ape.obj", model)) {
+        return -1;
+    }
 	
     glutMainLoop ( );
 	return 0;
