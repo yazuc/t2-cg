@@ -111,9 +111,15 @@ float P0x, P0y, P0z; // Ponto inicial
 float P1x, P1y, P1z; // Ponto de controle 1
 float P2x, P2y, P2z; // Ponto de controle 2
 float P3x, P3y, P3z; // Ponto final
+float P0xd, P0yd, P0zd; // Ponto inicial
+float P1xd, P1yd, P1zd; // Ponto de controle 1
+float P2xd, P2yd, P2zd; // Ponto de controle 2
+float P3xd, P3yd, P3zd; // Ponto final
 
 float t = 0.0f;  // Parâmetro da curva (de 0 a 1)
 float dt = 0.01f; // Incremento de t para o movimento
+float td = 0.0f;  // Parâmetro da curva (de 0 a 1)
+float dtd = 0.01f; // Incremento de t para o movimento
 
 
 typedef struct  // Struct para armazenar um ponto
@@ -449,6 +455,7 @@ bool quebrarBloco(float projX, float projY, float projZ)
 void DesenhaProjetil()
 {
     bool continua;
+    bool continua1;
     // if (disparado) 
     // {
     //     glPushMatrix();
@@ -538,38 +545,90 @@ void DesenhaProjetil()
     }
 
 
-    if(disparado1){     
-        bool continua1; 
+    // if(disparado1){     
+    //     bool continua1; 
+    //     glPushMatrix();
+    //         glTranslatef(projXd, projYd, projZd); // Posiciona o projétil
+    //         glutSolidSphere(0.5, 10, 5);// Desenha o projétil como uma esfera
+    //     glPopMatrix();
+
+    //     projXd -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
+
+    //     if (verificarColisao2()) // Considera a posição do paredão
+    //     {
+    //         const int alcance = 1; // Alcance da destruição ao redor do impacto
+
+    //         // Itera sobre os blocos ao redor (em 3 dimensões)
+    //         for (int dx = -alcance; dx <= alcance; ++dx)
+    //         {
+    //             for (int dy = -alcance; dy <= alcance; ++dy)
+    //             {
+    //                 for (int dz = -alcance; dz <= alcance; ++dz)
+    //                 {
+    //                     int blocoX = projXd + dx;
+    //                     int blocoY = projYd + dy;
+    //                     int blocoZ = projZd + dz;
+
+    //                     // Quebra o bloco na posição calculada
+    //                     continua1 = quebrarBloco(blocoX, blocoY, blocoZ);                        
+    //                 }
+    //             }
+    //         }
+    //         disparado1 = continua1; // O projétil parou
+    //         std::cout << "Colisão com o paredão!" << std::endl;
+
+    //     }
+    // }
+
+    if (disparado1)
+    {
         glPushMatrix();
-            glTranslatef(projXd, projYd, projZd); // Posiciona o projétil
-            glutSolidSphere(0.5, 10, 5);// Desenha o projétil como uma esfera
+            glTranslatef(projXd, projYd, projZd);
+            glutSolidSphere(0.5, 20, 20); // Desenha o projétil como uma esfera
         glPopMatrix();
 
-        projXd -= velocidadeProj; // Move o projétil para frente (em direção ao paredão)
-
-        if (verificarColisao2()) // Considera a posição do paredão
+        if (td <= 1.0f)
         {
-            const int alcance = 1; // Alcance da destruição ao redor do impacto
+            // Curva de Bézier cúbica
+            projXd = pow(1-td, 3) * P0xd + 3 * pow(1-td, 2) * td * P1xd + 3 * (1-td) * td*td * P2xd + td*td*td * P3xd;
+            projYd = pow(1-td, 3) * P0yd + 3 * pow(1-td, 2) * td * P1yd + 3 * (1-td) * td*td * P2yd + td*td*td * P3yd;
+            projZd = pow(1-td, 3) * P0zd + 3 * pow(1-td, 2) * td * P1zd + 3 * (1-td) * td*td * P2zd + td*td*td * P3zd;
 
-            // Itera sobre os blocos ao redor (em 3 dimensões)
-            for (int dx = -alcance; dx <= alcance; ++dx)
+            // Incrementa o parâmetro t
+            td += dtd;
+
+            // Exibe a posição atual do projétil (opcional)
+            printf("Projétil: x:%f y:%f z:%f\n", projXd, projYd, projZd);
+            if (verificarColisao2()) // Considera a posição do paredão
             {
-                for (int dy = -alcance; dy <= alcance; ++dy)
-                {
-                    for (int dz = -alcance; dz <= alcance; ++dz)
-                    {
-                        int blocoX = projXd + dx;
-                        int blocoY = projYd + dy;
-                        int blocoZ = projZd + dz;
+                const int alcance = 1; // Alcance da destruição ao redor do impacto
 
-                        // Quebra o bloco na posição calculada
-                        continua1 = quebrarBloco(blocoX, blocoY, blocoZ);                        
+                // Itera sobre os blocos ao redor (em 3 dimensões)
+                for (int dx = -alcance; dx <= alcance; ++dx)
+                {
+                    for (int dy = -alcance; dy <= alcance; ++dy)
+                    {
+                        for (int dz = -alcance; dz <= alcance; ++dz)
+                        {
+                            int blocoX = projXd + dx;
+                            int blocoY = projYd + dy;
+                            int blocoZ = projZd + dz;
+
+                            // Quebra o bloco na posição calculada
+                            continua1 = quebrarBloco(blocoX, blocoY, blocoZ);
+                        }
                     }
                 }
+                disparado1 = continua1; // O projétil parou
+                // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
+                std::cout << "Colisão com o paredão!" << std::endl;
             }
-            disparado1 = continua1; // O projétil parou
-            std::cout << "Colisão com o paredão!" << std::endl;
-
+        }
+        else
+        {
+            // Finaliza o disparo ao atingir o final da curva
+            disparado1 = false;
+            printf("Disparo concluído.\n");
         }
     }
     
@@ -1265,7 +1324,7 @@ void display( void )
 
     glColor3f(0.8,0.8,0);    
     DesenhaParedao();
-    AtualizarPosicaoProjetil();
+    //AtualizarPosicaoProjetil();
     DesenhaProjetil();
 
    // Exibe vaca
@@ -1394,38 +1453,56 @@ void keyboard ( unsigned char key, int x, int y )
             float dirY = sin(radY);
             float dirZ = cos(radY) * cos(radX);
 
-            // Ponto inicial da curva (ponta do canhão)
             P0x = pontaX;
             P0y = pontaY;
             P0z = pontaZ;
 
-            // Ajusta os pontos de controle com base na direção
-            float escala = 5.0f; // Ajuste da magnitude da direção
+            float escala = 10.0f; // 
             P1x = P0x + dirX * escala;
-            P1y = P0y + dirY * escala + 5; // Eleva para dar a curva inicial
+            P1y = P0y + dirY * escala + 5; 
             P1z = P0z + dirZ * escala;
 
             P2x = P1x + dirX * escala;
-            P2y = P1y + dirY * escala - 5; // Desce gradualmente
+            P2y = P1y + dirY * escala - 5; 
             P2z = P1z + dirZ * escala;
 
-            // Destino do disparo, mais longe na direção
             P3x = P2x + dirX * escala * 2;
-            P3y = P2y; // Mantém o mesmo nível para finalizar
+            P3y = P2y; 
             P3z = P2z;
         }
         if(!disparado1){
+            disparado1 = true;
+            td = 0.0f;
             float radX = anguloPrincipal * M_PI / 180.0f; // Ângulo do canhão            
             float radYd = (anguloCanhaod) * M_PI / 180.0f; // Ângulo principal (se necessário)
         
             disparado1 = true;
 
-            dirProjXd = cos(radYd) * sin(radX); // Direção no eixo X
-            dirProjYd = sin(radYd);             // Direção no eixo Y
-            dirProjZd = cos(radYd) * cos(radX); // Direção no eixo Z
-            projXd = pontaXd + dirProjXd;
-            projYd = pontaYd + dirProjYd;
-            projZd = pontaZd + dirProjZd;
+            float dirXd = cos(radYd) * sin(radX); // Direção no eixo X
+            float dirYd = sin(radYd);             // Direção no eixo Y
+            float dirZd = cos(radYd) * cos(radX); // Direção no eixo Z
+            
+            P0xd = pontaXd;
+            P0yd = pontaYd;
+            P0zd = pontaZd;
+
+             float escala = 10.0f;
+            P1xd = P0xd + dirXd * escala;
+            P1yd = P0yd + dirYd * escala + 5; 
+            P1zd = P0zd + dirZd * escala;
+
+            P2xd = P1xd + dirXd * escala;
+            P2yd = P1yd + dirYd * escala - 5;  // CORRIGIDO PARA dirYd
+            P2zd = P1zd + dirZd * escala;
+
+            P3xd = P2xd + dirXd * escala * 2;
+            P3yd = P2yd; 
+            P3zd = P2zd;
+            
+            
+            // projXd = pontaXd + dirProjXd;
+            // projYd = pontaYd + dirProjYd;
+            // projZd = pontaZd + dirProjZd;
         }
         break;   
     default:
