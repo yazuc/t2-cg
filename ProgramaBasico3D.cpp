@@ -112,7 +112,7 @@ GLfloat InvCameraMatrix[4][4];
 GLuint TEX1, TEX2, TEX, TEX3;
 GLfloat anguloCanhao = 5.0f;
 GLfloat anguloCanhaod = 5.0f;
-Ponto PosicaoDoObjeto(0,0,4);
+Ponto PosicaoDoObjeto(-29.5,0,10);
 Ponto DirecaoDoObjeto(1,0,0);
 Ponto DirecaoDoCanhao(1,0,0);
 float anguloDaVacaX = -270.0;
@@ -401,7 +401,7 @@ void initTexture (void)
 {
     TEX3 = LoadTexture ("./MonadoTilt.jpg");
     TEX2 = LoadTexture ("./grass_texture.jpg");
-    TEX1 = LoadTexture ("./igordinho.png");
+    TEX1 = LoadTexture ("./paredao.png");
     TEX = LoadTexture ("./shulkxenoblade.png");
 }
 
@@ -478,13 +478,13 @@ bool verificarColisoesObjetosPiso(float x, float y, float z) {
 bool verificarColisao()
 {
     // Posições do paredão: O paredão vai de x = 6 até x = -7, de y = 0 e de z = -11 até z = 11
-    const float paredaoXMin = 5.0f;
-    const float paredaoXMax = 5.5f;
+    const float paredaoXMin = -5.0f;
+    const float paredaoXMax = -5.2f;
     const float paredaoZMin = -11.0f; 
     const float paredaoZMax = 30.0f; 
     
     // Verifica se a posição do projétil está dentro dos limites do paredão
-    if (proj.x >= paredaoXMin && proj.x <= paredaoXMax && proj.z >= paredaoZMin && proj.z <= paredaoZMax)
+    if (proj.x <= paredaoXMin && proj.x >= paredaoXMax && proj.z >= paredaoZMin && proj.z <= paredaoZMax)
     {
         pontuacao += 5;
         std::cout << "Atingiu paredão! Pontuação: " << pontuacao << std::endl;
@@ -496,12 +496,12 @@ bool verificarColisao()
 
 bool verificarColisao2()
 {
-    const float paredaoXMin = 5.0f;
-    const float paredaoXMax = 5.5f;
+    const float paredaoXMin = -5.0f;
+    const float paredaoXMax = -5.2f;
     const float paredaoZMin = -11.0f; 
     const float paredaoZMax = 30.0f; 
 
-    if (proj2.x >= paredaoXMin && proj2.x <= paredaoXMax && proj2.z >= paredaoZMin &&  proj2.z <= paredaoZMax)
+    if (proj2.x <= paredaoXMin && proj2.x >= paredaoXMax && proj2.z >= paredaoZMin &&  proj2.z <= paredaoZMax)
     {
         pontuacao += 5;
         std::cout << "Atingiu paredão! Pontuação: " << pontuacao << std::endl;
@@ -943,7 +943,7 @@ void DesenhaParedao()
     glRotatef(90, 0, 1, 0); // Ajustando rotação no eixo Y para uma melhor visualização
 
     // Posiciona o paredão no meio do cenário
-    glTranslatef(-29.5, -1, 7);
+    glTranslatef(-29.5, -1, -5);
 
     // Desenha os quadrados de 1m x 1m
     for (int i = 0; i < altura; i++) // Para cada linha (vertical)
@@ -1070,7 +1070,7 @@ void PosicUser()
     // observador
     if (ModoDeProjecao == 0)
         glOrtho(-12, 12, -12, 12, 1, 18); // Projecao paralela Orthografica
-    else MygluPerspective(90, AspectRatio, 0.1, 50); // Projecao perspectiva
+    else MygluPerspective(90, AspectRatio, 0.1, 1000.0f); // Projecao perspectiva
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -1393,7 +1393,7 @@ void DesenhaEAplicaTexturaProtagonista(){
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
         //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
 
-        //PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");        
+        PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");        
         //P.imprime("Ponto Instanciado: ", "\n");
     glPopMatrix();
 }
