@@ -78,10 +78,8 @@ struct BoundingBox {
 Projectile proj;
 Projectile proj2;
 
-
 Temporizador T;
 double AccumDeltaT=0;
-
 
 GLfloat AspectRatio, angulo=0, anguloPrincipal = 90.0f;
 
@@ -116,9 +114,6 @@ GLfloat anguloCanhaod = 5.0f;
 Ponto PosicaoDoObjeto(-29.5,0,10);
 Ponto DirecaoDoObjeto(1,0,0);
 Ponto DirecaoDoCanhao(1,0,0);
-float anguloDaVacaX = -270.0;
-float anguloDaVacaY = 500.0;
-float anguloDaVacaZ = 40.0;
 ModoExibicao tipoVista {PlayerCam};
 float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
 float projXd = 0.0f, projYd = 0.0f, projZd = -10.0f; // Posição inicial do projétil
@@ -129,6 +124,7 @@ Model Canhao;
 int pontuacao = 0;
 float velocidadeProj = 0.5f; // Velocidade do projétil
 const float velocidadeObj = 0.5f; // Velocidade do objeto
+
 float pontaX, pontaY, pontaZ, dirProjX, dirProjY, dirProjZ = 0.0;
 float pontaXd, pontaYd, pontaZd, dirProjXd, dirProjYd, dirProjZd = 0.0;
 const int largura = 40;  // Número de blocos na largura do paredão
@@ -196,7 +192,6 @@ float clamp(float value, float min, float max) {
     return std::max(min, std::min(value, max));
 }
 bool checkObjectCollision(float px, float py, float pz, const Objeto& obj, const Model& m) {
-    // Account for scaling
     BoundingBox modelBox = getModelBoundingBox(m);
     modelBox.minX *= obj.largura;
     modelBox.minY *= obj.altura;
@@ -206,7 +201,6 @@ bool checkObjectCollision(float px, float py, float pz, const Objeto& obj, const
     modelBox.maxZ *= obj.profundidade;
 
 
-    // Adjust modelBox position based on object position
     modelBox.minX += obj.x;
     modelBox.minY += obj.y;
     modelBox.minZ += obj.z;
@@ -214,8 +208,6 @@ bool checkObjectCollision(float px, float py, float pz, const Objeto& obj, const
     modelBox.maxY += obj.y;
     modelBox.maxZ += obj.z;
 
-
-    // Sphere-AABB collision detection (projectile is a sphere with radius 0.5)
     float closestX = clamp(px, modelBox.minX, modelBox.maxX);
     float closestY = clamp(py, modelBox.minY, modelBox.maxY);
     float closestZ = clamp(pz, modelBox.minZ, modelBox.maxZ);
@@ -224,9 +216,8 @@ bool checkObjectCollision(float px, float py, float pz, const Objeto& obj, const
                            (py - closestY) * (py - closestY) +
                            (pz - closestZ) * (pz - closestZ);
 
-    return distanceSquared <= 0.25f; // 0.5f radius squared
+    return distanceSquared <= 0.25f; 
 }
-
 
 void handleObjectCollision(int objectType){
     if (objectType == 1) {
@@ -242,16 +233,12 @@ void handleObjectCollision(int objectType){
 }
 
 bool checkWallCollision(float px, float py, float pz) {
-    // Definir os limites do paredão (ajuste conforme necessário)
-    const float paredaoMinX = -6.0f; // Ajuste conforme necessário
-    const float paredaoMaxX = -4.0f; // Ajuste conforme necessário
+    const float paredaoMinX = -6.0f; 
+    const float paredaoMaxX = -4.0f; 
     const float paredaoMinZ = -9.0f; 
     const float paredaoMaxZ = 30.0f; 
-    const float paredaoMinY = -0.5f;  // Se o paredão tem altura, ajuste isso
-    const float paredaoMaxY = 10.0f; // Altura máxima do paredão
-
-
-    // Adicionar depuração para valores de entrada
+    const float paredaoMinY = -0.5f;  
+    const float paredaoMaxY = 10.0f; 
 
     // Encontrar o ponto mais próximo do projétil no paredão
     float closestX = clamp(px, paredaoMinX, paredaoMaxX);
@@ -536,7 +523,6 @@ bool verificarColisaoCarro(float novoX, float novoZ, int altura, int largura) {
     float projZ = novoZ;
 
     if (!estaQuebrado(projX, projY, projZ, altura, largura)) { // Check if the path is blocked
-        //Check if the car is inside the wall's boundaries
         bool colisao = (novoX >= paredaoXMin && novoX <= paredaoXMax &&
                         novoZ >= paredaoZMin && novoZ <= paredaoZMax);
         if (colisao) {
@@ -1361,25 +1347,6 @@ void DesenhaCuboComTextura(float tamAresta) {
 }
 
 
-// No seu loop de renderização ou função de desenho:
-void desenharLinhaDirecao(float projX, float projY, float projZ, float dirProjX, float dirProjY, float dirProjZ)
-{
-    // Escala para ajustar o comprimento da linha (exemplo: 10x)
-    float escala = 100.0f;
-
-    // Ponto final da linha com base na direção do projétil
-    float linhaX = projX + dirProjX * escala;
-    float linhaY = projY + dirProjY * escala;
-    float linhaZ = projZ + dirProjZ * escala;
-
-    // Desenhar a linha
-    glBegin(GL_LINES); // Inicia o desenho de linhas
-        glColor3f(1.0f, 0.0f, 0.0f); // Cor da linha (vermelho, exemplo)
-        glVertex3f(projX, projY, projZ); // Posição inicial (projétil)
-        glVertex3f(linhaX, linhaY, linhaZ); // Posição final
-    glEnd(); // Finaliza o desenho
-}
-
 void exibirTexto(int x, int y, const char *texto) {
     glRasterPos2i(x, y);  // Define a posição do texto na tela (canto superior esquerdo)
     
@@ -1578,7 +1545,6 @@ void keyboard ( unsigned char key, int x, int y )
 
 void atualizaCamera()
 {
-    // Posição da câmera em relação ao jogador
     float eyeX = PosicaoDoObjeto.x;
     float eyeY = PosicaoDoObjeto.y + 5.0f; // Eleva a câmera acima do jogador
     float eyeZ = PosicaoDoObjeto.z + 10.0f; // Afasta a câmera atrás do jogador
@@ -1665,12 +1631,6 @@ int main ( int argc, char** argv )
 	glutKeyboardFunc ( keyboard );
 	glutSpecialFunc ( arrow_keys );
 	glutIdleFunc ( animate );
-    
-    // char Nome[] = "Vaca.tri";
-    // MundoVirtual = new Objeto3D[5];
-    // // carrega obj .tri
-    // MundoVirtual[0].LeObjeto(Nome);
-    //MundoVirtual[1].LeObjeto("watership.tri");
 
     if (!LoadOBJ("Ape.obj", model)) {
     return -1;
@@ -1678,10 +1638,7 @@ int main ( int argc, char** argv )
     if (!LoadOBJ("eyeball.obj", amigo)) {
     return -1;
     }
-    //  if (!LoadOBJ("cavalo.obj", Canhao)) {
-    // return -1;
-    // }
-	
+
     glutMainLoop ( );
 	return 0;
 }
