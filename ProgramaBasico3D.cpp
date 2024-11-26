@@ -103,6 +103,7 @@ void atualizaCamera();
 double nFrames=0;
 double TempoTotal=0;
 bool freecam = false;
+bool estaQuebrado(float projX, float projY, float projZ, int altura, int largura);
 Ponto CantoEsquerdo = Ponto(-20,0,-10);
 Ponto OBS;
 Ponto ALVO;
@@ -122,6 +123,7 @@ ModoExibicao tipoVista {PlayerCam};
 float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
 float projXd = 0.0f, projYd = 0.0f, projZd = -10.0f; // Posição inicial do projétil
 Model model;
+Model amigo;
 Model Canhao;
 
 int pontuacao = 0;
@@ -132,10 +134,10 @@ float pontaXd, pontaYd, pontaZd, dirProjXd, dirProjYd, dirProjZd = 0.0;
 const int largura = 40;  // Número de blocos na largura do paredão
 const int altura = 15;   // Número de blocos na altura do paredão
 bool paredao[altura][largura]; // Matriz de blocos do paredão (true = ativo)
-const float LIMITE_MIN_X = -45; // Limite mínimo do mapa no eixo X
-const float LIMITE_MAX_X = 45; // Limite máximo do mapa no eixo X
+const float LIMITE_MIN_X = -35; // Limite mínimo do mapa no eixo X
+const float LIMITE_MAX_X = 35; // Limite máximo do mapa no eixo X
 const float LIMITE_MIN_Z = -15; // Limite mínimo do mapa no eixo Z
-const float LIMITE_MAX_Z = 35; // Limite máximo do mapa no eixo Z
+const float LIMITE_MAX_Z = 45; // Limite máximo do mapa no eixo Z
 float P0x, P0y, P0z; // Ponto inicial
 float P1x, P1y, P1z; // Ponto de controle 1
 float P2x, P2y, P2z; // Ponto de controle 2
@@ -151,7 +153,7 @@ float dt = 0.01f; // Incremento de t para o movimento
 float td = 0.0f;  // Parâmetro da curva (de 0 a 1)
 float dtd = 0.01f; // Incremento de t para o movimento
 
-const int NUM_OBJETOS = 10;
+const int NUM_OBJETOS = 20;
 
 struct Objeto {
     float x, y, z;       // Centro do objeto
@@ -233,10 +235,41 @@ void handleObjectCollision(int objectType){
     } else if (objectType == 2) {
         pontuacao -= 10;
         std::cout << "Atingiu amigo! Pontuação: " << pontuacao << std::endl;
-    } else {
+    } else if (objectType == 3){
         std::cout << "Fim de jogo! Pontuação final: " << pontuacao << std::endl;
         exit(0);
     }
+}
+
+bool checkWallCollision(float px, float py, float pz) {
+    // Definir os limites do paredão (ajuste conforme necessário)
+    const float paredaoMinX = -6.0f; // Ajuste conforme necessário
+    const float paredaoMaxX = -4.0f; // Ajuste conforme necessário
+    const float paredaoMinZ = -9.0f; 
+    const float paredaoMaxZ = 30.0f; 
+    const float paredaoMinY = -0.5f;  // Se o paredão tem altura, ajuste isso
+    const float paredaoMaxY = 10.0f; // Altura máxima do paredão
+
+
+    // Adicionar depuração para valores de entrada
+
+    // Encontrar o ponto mais próximo do projétil no paredão
+    float closestX = clamp(px, paredaoMinX, paredaoMaxX);
+    float closestY = clamp(py, paredaoMinY, paredaoMaxY);
+    float closestZ = clamp(pz, paredaoMinZ, paredaoMaxZ);
+
+    // Calcular distância ao ponto mais próximo
+    float distanceSquared = (px - closestX) * (px - closestX) +
+                            (py - closestY) * (py - closestY) +
+                            (pz - closestZ) * (pz - closestZ);
+    // Verificar colisão (esfera com raio 0.5)
+    if (distanceSquared <= 0.25f) {
+        std::cout << "Colisão detectada!\n";
+        return true;
+    }
+
+    std::cout << "Sem colisão.\n";
+    return false;
 }
 
 bool LoadOBJ(const std::string& filePath, Model& model) {
@@ -296,17 +329,32 @@ void inicializarPisos() {
 
 void inicializarObjetos() {
     srand(time(0)); // Semente para posições aleatórias
-    float coordenadas[10][2] = {
-        {30, 24},
-        {30, 16},
-        {30, 8},
-        {30, 0},
-        {30, -8},
-        {15, 24},
-        {15, 16},
-        {15, 8},
-        {15, 0},
-        {15, -8},
+    int a, b, c, d = 0;
+    a= 30;
+    b = 20;
+    c = 10; 
+    d = 2;
+    float coordenadas[20][2] = {
+        {a, 24},
+        {a, 16},
+        {a, 8},
+        {a, 0},
+        {a, -8},
+        {b, 24},
+        {b, 16},
+        {b, 8},
+        {b, 0},
+        {b, -8},
+        {c, 24},
+        {c, 16},
+        {c, 8},
+        {c, 0},
+        {c, -8},
+        {d, 24},
+        {d, 16},
+        {d, 8},
+        {d, 0},
+        {d, -8},
     };
     for (int i = 0; i < NUM_OBJETOS; i++) {
         objetos[i].x = coordenadas[i][0];
@@ -315,10 +363,10 @@ void inicializarObjetos() {
         objetos[i].r = static_cast<float>(rand()) / RAND_MAX;
         objetos[i].g = static_cast<float>(rand()) / RAND_MAX;
         objetos[i].b = static_cast<float>(rand()) / RAND_MAX;
-        objetos[i].largura = (i < 5) ? 3.0f : 2.0f; // Inimigos maiores
-        objetos[i].altura = (i < 5) ? 3.0f : 2.0f;
-        objetos[i].profundidade = (i < 5) ? 3.0f : 2.0f;
-        objetos[i].tipo = (i < 5) ? 1 : 2; // Os primeiros 5 são inimigos
+        objetos[i].largura = 2.0f;  // Tamanho fixo para todos
+        objetos[i].altura = 2.0f;   // Tamanho fixo para todos
+        objetos[i].profundidade = 2.0f; // Tamanho fixo para todos
+        objetos[i].tipo = (i == 3) ? 3 : (i < 10) ? 1 : 2;
         objetos[i].ativo = true;     // Todos começam ativos
     }
 }
@@ -466,50 +514,44 @@ bool verificarColisoesObjetosPiso(float x, float y, float z) {
      for (int i = 0; i < NUM_OBJETOS; ++i) {
         if (!objetos[i].ativo) continue;
 
-        if (checkObjectCollision(x, y, z, objetos[i], (objetos[i].tipo == 1)? model : Canhao)) {
+        if (checkObjectCollision(x, y, z, objetos[i], (objetos[i].tipo == 1 || objetos[i].tipo == 3) ? model : amigo)) {
             objetos[i].ativo = false; 
             handleObjectCollision(objetos[i].tipo); 
             return true;  
         }
     }
-     return false;  // No collision
+     return false; 
 }
 
-bool verificarColisao()
-{
-    // Posições do paredão: O paredão vai de x = 6 até x = -7, de y = 0 e de z = -11 até z = 11
-    const float paredaoXMin = -5.0f;
-    const float paredaoXMax = -5.2f;
-    const float paredaoZMin = -11.0f; 
-    const float paredaoZMax = 30.0f; 
-    
-    // Verifica se a posição do projétil está dentro dos limites do paredão
-    if (proj.x <= paredaoXMin && proj.x >= paredaoXMax && proj.z >= paredaoZMin && proj.z <= paredaoZMax)
-    {
-        pontuacao += 5;
-        std::cout << "Atingiu paredão! Pontuação: " << pontuacao << std::endl;
-        return true; // Colisão detectada
+bool verificarColisaoCarro(float novoX, float novoZ, int altura, int largura) {
+    // Paredão: x = -7.0 até x = -5.0, z = -9.0 até z = 33.0
+    const float paredaoXMin = -7.0f;
+    const float paredaoXMax = -5.0f;
+    const float paredaoZMin = -9.0f;
+    const float paredaoZMax = 33.0f;
+
+    //Simulate projectile position
+    float projX = novoX;
+    float projY = 0; //Adjust if necessary
+    float projZ = novoZ;
+
+    if (!estaQuebrado(projX, projY, projZ, altura, largura)) { // Check if the path is blocked
+        //Check if the car is inside the wall's boundaries
+        bool colisao = (novoX >= paredaoXMin && novoX <= paredaoXMax &&
+                        novoZ >= paredaoZMin && novoZ <= paredaoZMax);
+        if (colisao) {
+            std::cout << "Atingiu paredão com o carro!" << std::endl;
+            return true;
+        } else {
+            std::cout << "Pode atravessar o paredão!" << std::endl;
+            return false;
+        }
+    } else {
+        std::cout << "Pode atravessar o paredão!" << std::endl;
+        return false;
     }
-    
-    return false; // Sem colisão
 }
 
-bool verificarColisao2()
-{
-    const float paredaoXMin = -5.0f;
-    const float paredaoXMax = -5.2f;
-    const float paredaoZMin = -11.0f; 
-    const float paredaoZMax = 30.0f; 
-
-    if (proj2.x <= paredaoXMin && proj2.x >= paredaoXMax && proj2.z >= paredaoZMin &&  proj2.z <= paredaoZMax)
-    {
-        pontuacao += 5;
-        std::cout << "Atingiu paredão! Pontuação: " << pontuacao << std::endl;
-        return true; // Colisão detectada
-    }
-    
-    return false; // Sem colisão
-}
 
 void quebrarBlocoPiso(float x, float z) {
     const int alcance = 1; // Alcance de destruição (1 bloco ao redor)
@@ -548,7 +590,7 @@ bool quebrarBloco(float projX, float projY, float projZ)
 
     projX -= transX;
     projY -= transY + 7;
-    projZ -= transZ ;
+    projZ -= transZ + 2;
 
     float radAngulo = rotAngulo * M_PI / 180.0f; 
     float cosAngulo = cos(-radAngulo);  
@@ -567,21 +609,22 @@ bool quebrarBloco(float projX, float projY, float projZ)
     if (blocoX >= 0 && blocoX < largura && blocoY >= 0 && blocoY < altura)
     {
         if(paredao[blocoY][blocoX]){
+            pontuacao += 5;
             return paredao[blocoY][blocoX] = false; 
         }
     }
     return true;
 }
 
-bool estaQuebrado(float projX, float projY, float projZ) {
-    const float transX = -18.0f; 
-    const float transY = -1.0f;  
-    const float transZ = 7.0f;   
-    const float rotAngulo = 90.0f; 
+bool estaQuebrado(float projX, float projY, float projZ, int altura, int largura) {
+    const float transX = -18.0f;
+    const float transY = -1.0f;
+    const float transZ = 7.0f;
+    const float rotAngulo = 90.0f; // Rotation around Y-axis
 
     projX -= transX;
     projY -= transY + 7;
-    projZ -= transZ;
+    projZ -= transZ + 2;
 
     float radAngulo = rotAngulo * M_PI / 180.0f; 
     float cosAngulo = cos(-radAngulo);  
@@ -593,15 +636,16 @@ bool estaQuebrado(float projX, float projY, float projZ) {
     projX = rotatedX;
     projZ = rotatedZ;
 
-    int blocoY = static_cast<int>(projY + altura / 2.0f);   
-    int blocoX = static_cast<int>(projX + largura / 2.0f);  
-
-    if (blocoX >= 0 && blocoX < largura && blocoY >= 0 && blocoY < altura) {
-        return !paredao[blocoY][blocoX]; 
+    int blocoY = int(projY + altura / 2.0f);   
+    int blocoX = int((projX + largura / 2.0f));  
+  
+    if (blocoX < 0 || blocoX >= largura || blocoY < 0 || blocoY >= altura) {
+        return false; 
     }
-
-    return false; 
+    return !paredao[blocoY][blocoX]; 
 }
+
+
 void DesenhaObjetos() {
     for (int i = 0; i < NUM_OBJETOS; i++) {
         if (!objetos[i].ativo) continue; // Ignorar objetos inativos
@@ -616,7 +660,10 @@ void DesenhaObjetos() {
             DrawModel(model);
         }
         if(objetos[i].tipo == 2){
-            DrawModel(Canhao);
+            DrawModel(amigo);
+        }
+        if(objetos[i].tipo == 3){            
+            DrawModel(model);
         }
         glPopMatrix();
     }
@@ -704,8 +751,8 @@ void DesenhaProjetil()
         glPopMatrix();
 
         t += dt;
-        if(!estaQuebrado(proj.x, proj.y, proj.z)){
-            if (verificarColisao()) 
+        if(!estaQuebrado(proj.x, proj.y, proj.z, altura, largura)){
+            if (checkWallCollision(proj.x, proj.y, proj.z)) 
             {
                 p.imprime("Posicao do Projetil");
                 const int alcance = 1; 
@@ -715,9 +762,9 @@ void DesenhaProjetil()
                     {
                         for (int dz = -alcance; dz <= alcance; ++dz)
                         {
-                            int blocoX = proj.x + dx;
-                            int blocoY = proj.y + dy;
-                            int blocoZ = proj.z + dz;
+                            int blocoX = static_cast<int>(proj.x) + dx;
+                            int blocoY = static_cast<int>(proj.y) + dy;
+                            int blocoZ = static_cast<int>(proj.z) + dz;
 
                             quebrarBloco(blocoX, blocoY, blocoZ);
                         }
@@ -725,17 +772,21 @@ void DesenhaProjetil()
                 }    
                 proj.active = false;
             }
-        }else{                  
+        }else{                 
+            printf("esta quebrado");
              proj.active = !verificarColisoesObjetosPiso(proj.x, proj.y, proj.z);                  
         }
         // Colisão com o piso
-        if (proj.z >= LIMITE_MIN_Z && proj.z <= LIMITE_MAX_Z && proj.x >= LIMITE_MIN_X && proj.x <= LIMITE_MAX_X && proj.y <= 0.0f) {
+        if (proj.z >= LIMITE_MIN_Z && proj.z <= LIMITE_MAX_Z && proj.x >= LIMITE_MIN_X && proj.x <= LIMITE_MAX_X && proj.y <= -0.10f) {
             pontuacao -= 5;
             quebrarBlocoPiso(proj.x, proj.z); 
             proj.active = false;
         }            
         if (t >= 1.0f) {     
             verificarColisoesObjetosPiso(proj.x, proj.y, proj.z);       
+            proj.active = false;
+        }
+        if(verificarColisoesObjetosPiso(proj.x, proj.y, proj.z) && t <= 1.0f){
             proj.active = false;
         }
     }
@@ -754,8 +805,8 @@ void DesenhaProjetil()
         glPopMatrix();
 
         td += dtd;
-        if(!estaQuebrado(proj2.x, proj2.y, proj2.z)){
-            if (verificarColisao2()) 
+        if(!estaQuebrado(proj2.x, proj2.y, proj2.z, altura, largura)){
+            if (checkWallCollision(proj2.x, proj2.y, proj2.z)) 
             {
                 const int alcance = 1; 
                 for (int dx = -alcance; dx <= alcance; ++dx)
@@ -764,9 +815,9 @@ void DesenhaProjetil()
                     {
                         for (int dz = -alcance; dz <= alcance; ++dz)
                         {
-                            int blocoX = proj2.x + dx;
-                            int blocoY = proj2.y + dy;
-                            int blocoZ = proj2.z + dz;
+                            int blocoX = static_cast<int>(proj.x) + dx;
+                            int blocoY = static_cast<int>(proj2.y) + dy;
+                            int blocoZ = static_cast<int>(proj2.z) + dz;
 
                             quebrarBloco(blocoX, blocoY, blocoZ);
                         }
@@ -785,6 +836,9 @@ void DesenhaProjetil()
         }            
         if (td >= 1.0f) {     
             verificarColisoesObjetosPiso(proj2.x, proj2.y, proj2.z);       
+            proj2.active = false;
+        }
+        if(verificarColisoesObjetosPiso(proj2.x, proj2.y, proj2.z) && t <= 1.0f){
             proj2.active = false;
         }
     }            
@@ -1393,7 +1447,7 @@ void DesenhaEAplicaTexturaProtagonista(){
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
         //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
 
-        PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");        
+        //PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");        
         //P.imprime("Ponto Instanciado: ", "\n");
     glPopMatrix();
 }
@@ -1558,9 +1612,9 @@ void arrow_keys ( int a_keys, int x, int y )
     switch ( a_keys )
     {
         case GLUT_KEY_UP:
-            // Atualizar posição ao clicar seta para cima
-            novoX += velocidadeObj * sin(anguloPrincipal * M_PI / 180.0f);
-            novoZ += velocidadeObj * cos(anguloPrincipal * M_PI / 180.0f);
+            // Atualizar posição ao clicar seta para cima                    
+                novoX += velocidadeObj * sin(anguloPrincipal * M_PI / 180.0f);
+                novoZ += velocidadeObj * cos(anguloPrincipal * M_PI / 180.0f);
             break;
         case GLUT_KEY_DOWN:
             // Atualizar posição ao clicar seta para cima
@@ -1585,8 +1639,10 @@ void arrow_keys ( int a_keys, int x, int y )
     if (novoX >= LIMITE_MIN_X && novoX <= LIMITE_MAX_X && 
         novoZ >= LIMITE_MIN_Z && novoZ <= LIMITE_MAX_Z) 
     {
-        PosicaoDoObjeto.x = novoX;
-        PosicaoDoObjeto.z = novoZ;
+        if(!verificarColisaoCarro(novoX, novoZ, altura, largura)){
+            PosicaoDoObjeto.x = novoX;
+            PosicaoDoObjeto.z = novoZ;
+        }    
     }
 }
 
@@ -1619,9 +1675,12 @@ int main ( int argc, char** argv )
     if (!LoadOBJ("Ape.obj", model)) {
     return -1;
     }
-    if (!LoadOBJ("eyeball.obj", Canhao)) {
+    if (!LoadOBJ("eyeball.obj", amigo)) {
     return -1;
     }
+    //  if (!LoadOBJ("cavalo.obj", Canhao)) {
+    // return -1;
+    // }
 	
     glutMainLoop ( );
 	return 0;
