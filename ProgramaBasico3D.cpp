@@ -122,7 +122,7 @@ Model amigo;
 Model Canhao;
 
 int pontuacao = 0;
-float velocidadeProj = 0.5f; // Velocidade do projétil
+float velocidadeProj = 1.0f; // Velocidade do projétil
 const float velocidadeObj = 0.5f; // Velocidade do objeto
 
 float pontaX, pontaY, pontaZ, dirProjX, dirProjY, dirProjZ = 0.0;
@@ -130,10 +130,10 @@ float pontaXd, pontaYd, pontaZd, dirProjXd, dirProjYd, dirProjZd = 0.0;
 const int largura = 40;  // Número de blocos na largura do paredão
 const int altura = 15;   // Número de blocos na altura do paredão
 bool paredao[altura][largura]; // Matriz de blocos do paredão (true = ativo)
-const float LIMITE_MIN_X = -35; // Limite mínimo do mapa no eixo X
-const float LIMITE_MAX_X = 35; // Limite máximo do mapa no eixo X
-const float LIMITE_MIN_Z = -15; // Limite mínimo do mapa no eixo Z
-const float LIMITE_MAX_Z = 45; // Limite máximo do mapa no eixo Z
+const float LIMITE_MIN_X = -40; // Limite mínimo do mapa no eixo X
+const float LIMITE_MAX_X = 40; // Limite máximo do mapa no eixo X
+const float LIMITE_MIN_Z = -10; // Limite mínimo do mapa no eixo Z
+const float LIMITE_MAX_Z = 30; // Limite máximo do mapa no eixo Z
 float P0x, P0y, P0z; // Ponto inicial
 float P1x, P1y, P1z; // Ponto de controle 1
 float P2x, P2y, P2z; // Ponto de controle 2
@@ -454,7 +454,6 @@ void init(void)
     glEnable (GL_CULL_FACE );
     glEnable(GL_NORMALIZE);
     glShadeModel(GL_SMOOTH);
-    //glShadeModel(GL_FLAT);
 
     glColorMaterial ( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
     if (ModoDeExibicao) // Faces Preenchidas??
@@ -511,7 +510,6 @@ bool verificarColisoesObjetosPiso(float x, float y, float z) {
 }
 
 bool verificarColisaoCarro(float novoX, float novoZ, int altura, int largura) {
-    // Paredão: x = -7.0 até x = -5.0, z = -9.0 até z = 33.0
     const float paredaoXMin = -7.0f;
     const float paredaoXMax = -5.0f;
     const float paredaoZMin = -9.0f;
@@ -522,7 +520,7 @@ bool verificarColisaoCarro(float novoX, float novoZ, int altura, int largura) {
     float projY = 0; //Adjust if necessary
     float projZ = novoZ;
 
-    if (!estaQuebrado(projX, projY, projZ, altura, largura)) { // Check if the path is blocked
+    if (!estaQuebrado(projX, projY, projZ, altura, largura)) { 
         bool colisao = (novoX >= paredaoXMin && novoX <= paredaoXMax &&
                         novoZ >= paredaoZMin && novoZ <= paredaoZMax);
         if (colisao) {
@@ -546,11 +544,11 @@ void quebrarBlocoPiso(float x, float z) {
     bool (&pisoAtual)[larguraPiso][profundidadePiso] = areaEsquerda ? pisoEsquerda : pisoDireita;
 
     // Ajusta o deslocamento para lidar com as coordenadas locais de cada piso
-    float xOffset = areaEsquerda ? LIMITE_MIN_X : 0.0f;
+    float xOffset = areaEsquerda ? LIMITE_MIN_X : 0.0f; 
     float zOffset = LIMITE_MIN_Z;
 
     // Converte a posição do projétil para índices da matriz
-    int blocoX = int((x - xOffset) / ((LIMITE_MAX_X - LIMITE_MIN_X) / 2) * larguraPiso);
+    int blocoX = int((x - xOffset) / ((LIMITE_MAX_X - LIMITE_MIN_X) / 2.0f) * larguraPiso);
     int blocoZ = int((z - zOffset) / (LIMITE_MAX_Z - LIMITE_MIN_Z) * profundidadePiso);
 
     // Garante que os índices estão dentro dos limites da matriz
@@ -566,6 +564,7 @@ void quebrarBlocoPiso(float x, float z) {
         }
     }
 }
+
 
 bool quebrarBloco(float projX, float projY, float projZ)
 {
@@ -589,7 +588,6 @@ bool quebrarBloco(float projX, float projY, float projZ)
     projZ = rotatedZ;
 
     int blocoY = int(projY + altura / 2.0f);   
-
     int blocoX = int((projX + largura / 2.0f));  
 
     if (blocoX >= 0 && blocoX < largura && blocoY >= 0 && blocoY < altura)
@@ -655,7 +653,7 @@ void DesenhaObjetos() {
     }
 }
 
-Ponto calculateBezierPoint(float t, float P0x, float P0y, float P0z,
+Ponto caculaBezier(float t, float P0x, float P0y, float P0z,
                            float P1x, float P1y, float P1z,
                            float P2x, float P2y, float P2z,
                            float P3x, float P3y, float P3z) {
@@ -725,7 +723,7 @@ void DesenhaProjetil()
     bool continua;
     bool continua1;
     if (proj.active) {
-        Ponto p = calculateBezierPoint(t, P0x, P0y, P0z, P1x, P1y, P1z, P2x, P2y, P2z, P3x, P3y, P3z);
+        Ponto p = caculaBezier(t, P0x, P0y, P0z, P1x, P1y, P1z, P2x, P2y, P2z, P3x, P3y, P3z);
         proj.x = p.x;
         proj.y = p.y;
         proj.z = p.z;
@@ -736,7 +734,7 @@ void DesenhaProjetil()
         glutSolidSphere(0.5f, 20, 20);
         glPopMatrix();
 
-        t += dt;
+        t += dt * velocidadeProj;
         if(!estaQuebrado(proj.x, proj.y, proj.z, altura, largura)){
             if (checkWallCollision(proj.x, proj.y, proj.z)) 
             {
@@ -777,8 +775,7 @@ void DesenhaProjetil()
         }
     }
     if (proj2.active) {
-        // Calculate projectile position using Bézier curve
-        Ponto p = calculateBezierPoint(td, P0xd, P0yd, P0zd, P1xd, P1yd, P1zd, P2xd, P2yd, P2zd, P3xd, P3yd, P3zd);
+        Ponto p = caculaBezier(td, P0xd, P0yd, P0zd, P1xd, P1yd, P1zd, P2xd, P2yd, P2zd, P3xd, P3yd, P3zd);
         proj2.x = p.x;
         proj2.y = p.y;
         proj2.z = p.z;
@@ -790,7 +787,7 @@ void DesenhaProjetil()
         glutSolidSphere(0.5f, 20, 20);
         glPopMatrix();
 
-        td += dtd;
+        td += dtd * velocidadeProj;
         if(!estaQuebrado(proj2.x, proj2.y, proj2.z, altura, largura)){
             if (checkWallCollision(proj2.x, proj2.y, proj2.z)) 
             {
@@ -978,52 +975,34 @@ void DesenhaQuadrado()
 void DesenhaParedao()
 {    
     glPushMatrix();
-
-    // Gira o paredão para que fique perpendicular ao chão, se necessário
-    glRotatef(90, 0, 1, 0); // Ajustando rotação no eixo Y para uma melhor visualização
-
-    // Posiciona o paredão no meio do cenário
+    glRotatef(90, 0, 1, 0); 
     glTranslatef(-29.5, -1, -5);
 
     // Desenha os quadrados de 1m x 1m
-    for (int i = 0; i < altura; i++) // Para cada linha (vertical)
+    for (int i = 0; i < altura; i++) 
     {
-        for (int j = 0; j < largura; j++) // Para cada coluna (horizontal)
+        for (int j = 0; j < largura; j++) 
         {
-            if (paredao[i][j]) // Desenha apenas os blocos ativos
+            if (paredao[i][j]) 
             {
-                glPushMatrix(); // Empilha a matriz para cada bloco individual
-
-                // Move para a posição do bloco
-                glTranslatef(j, i, 0); // Ajusta a posição com base na coordenada (j, i)
-
-                // Aplica a textura ao bloco
-                glBindTexture(GL_TEXTURE_2D, TEX1);
-
-                // Inicia o desenho do quadrado (bloco)
-                glBegin(GL_QUADS);
-                glColor3f(1.0f, 1.0f, 1.0f); // Cor branca para a textura
-
-                // Definição dos vértices do quadrado e as coordenadas de textura
-                glTexCoord2f(j / float(largura), i / float(altura)); // (0, 0) coordenada de textura
-                glVertex3f(0, 0, 0);
-
-                glTexCoord2f((j + 1) / float(largura), i / float(altura)); // (1, 0)
-                glVertex3f(1, 0, 0);
-
-                glTexCoord2f((j + 1) / float(largura), (i + 1) / float(altura)); // (1, 1)
-                glVertex3f(1, 1, 0);
-
-                glTexCoord2f(j / float(largura), (i + 1) / float(altura)); // (0, 1)
-                glVertex3f(0, 1, 0);
-
-                glEnd(); // Finaliza o desenho do quadrado
-                glPopMatrix(); // Restaura a matriz
+                glPushMatrix(); 
+                    glTranslatef(j, i, 0); 
+                    glBindTexture(GL_TEXTURE_2D, TEX1);
+                    glBegin(GL_QUADS);
+                        glColor3f(1.0f, 1.0f, 1.0f); 
+                        glTexCoord2f(j / float(largura), i / float(altura)); 
+                        glVertex3f(0, 0, 0);
+                        glTexCoord2f((j + 1) / float(largura), i / float(altura)); // (1, 0)
+                        glVertex3f(1, 0, 0);
+                        glTexCoord2f((j + 1) / float(largura), (i + 1) / float(altura)); // (1, 1)
+                        glVertex3f(1, 1, 0);
+                        glTexCoord2f(j / float(largura), (i + 1) / float(altura)); // (0, 1)
+                        glVertex3f(0, 1, 0);
+                    glEnd(); 
+                glPopMatrix(); 
             }
         }
     }
-
-    // Restaura as transformações
     glPopMatrix();
 }
 
@@ -1075,10 +1054,6 @@ void DefineLuz(void)
 
   // Define a reflectancia do material
   glMaterialfv(GL_FRONT,GL_SPECULAR, Especularidade);
-
-  // Define a concentra��oo do brilho.
-  // Quanto maior o valor do Segundo parametro, mais
-  // concentrado ser� o brilho. (Valores v�lidos: de 0 a 128)
   glMateriali(GL_FRONT,GL_SHININESS,128);
 
 }
@@ -1086,13 +1061,6 @@ void DefineLuz(void)
 
 void MygluPerspective(float fieldOfView, float aspect, float zNear, float zFar )
 {
-    //https://stackoverflow.com/questions/2417697/gluperspective-was-removed-in-opengl-3-1-any-replacements/2417756#2417756
-    // The following code is a fancy bit of math that is equivilant to calling:
-    // gluPerspective( fieldOfView/2.0f, width/height , 0.1f, 255.0f )
-    // We do it this way simply to avoid requiring glu.h
-    //GLfloat zNear = 0.1f;
-    //GLfloat zFar = 255.0f;
-    //GLfloat aspect = float(width)/float(height);
     GLfloat fH = tan( float(fieldOfView / 360.0f * 3.14159f) ) * zNear;
     GLfloat fW = fH * aspect;
     glFrustum( -fW, fW, -fH, fH, zNear, zFar );
@@ -1166,11 +1134,7 @@ void PosicUser()
     SalvaMatrizDaCamera(InvCameraMatrix);
 
 }
-// **********************************************************************
-//  void reshape( int w, int h )
-//		trata o redimensionamento da janela OpenGL
-//
-// **********************************************************************
+
 void reshape( int w, int h )
 {
 
@@ -1266,7 +1230,6 @@ void DesenhaParalelepipedoComTextura() {
 
     glPopMatrix();
 }
-
 
 
 void DesenhaCuboComTextura(float tamAresta) {
@@ -1412,10 +1375,7 @@ void DesenhaEAplicaTexturaProtagonista(){
 
         Ponto P;
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
-        //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
-
-        //PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");        
-        //P.imprime("Ponto Instanciado: ", "\n");
+        PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");        
     glPopMatrix();
 }
 // **********************************************************************
@@ -1440,8 +1400,6 @@ void display( void )
     glPopMatrix();
     
     DesenhaEAplicaTexturaProtagonista();
-    
-
     DesenhaParedao();
     DesenhaObjetos();
     glColor3f(0.8,0.8,0);    
@@ -1474,7 +1432,6 @@ void keyboard ( unsigned char key, int x, int y )
             glutPostRedisplay();
             break;
     case 'o':
-            //ModoDeProjecao = !ModoDeProjecao;
             tipoVista = Superior;
             glutPostRedisplay();
             break;
@@ -1521,10 +1478,21 @@ void keyboard ( unsigned char key, int x, int y )
             anguloCanhaod = 0; 
         DirecaoDoCanhao.rotacionaY(anguloCanhao);
         break; // Move para direita
-    case 'r': // Resetar a posição
-        OBS = Ponto(0, 3, 10);
-        ALVO = Ponto(0, 0, 0);
-        break;  
+    case 'z':  // Aumenta a velocidade
+        velocidadeProj += 0.05f;  // Aumenta a velocidade do projétil
+        if (velocidadeProj > 5.0f) {  // Limita a velocidade máxima
+            velocidadeProj = 0.05f;
+        }
+        std::cout << "Velocidade aumentada: " << velocidadeProj << std::endl;
+        break;
+        
+    case 'x':  // Diminui a velocidade
+        velocidadeProj -= 0.05f;  // Diminui a velocidade do projétil
+        if (velocidadeProj < 0.05f) {  // Limita a velocidade mínima
+            velocidadeProj = 0.05f;
+        }
+        std::cout << "Velocidade diminuída: " << velocidadeProj << std::endl;
+        break; 
     case ' ': // Atirar canhão
         if (!proj.active) {
             proj.active = true;
