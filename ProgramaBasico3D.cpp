@@ -65,6 +65,12 @@ enum ModoExibicao {
     PlayerCam
     };
 
+struct Projectile {
+    float x, y, z;
+    bool active;
+};
+Projectile proj;
+
 Temporizador T;
 double AccumDeltaT=0;
 
@@ -108,6 +114,7 @@ ModoExibicao tipoVista {PlayerCam};
 float projX = 0.0f, projY = 0.0f, projZ = -10.0f; // Posição inicial do projétil
 float projXd = 0.0f, projYd = 0.0f, projZd = -10.0f; // Posição inicial do projétil
 Model model;
+Model Canhao;
 
 int pontuacao = 0;
 float velocidadeProj = 0.5f; // Velocidade do projétil
@@ -1105,16 +1112,10 @@ void PosicUser()
                 0.0, 1.0, 0.0);    
     }
     ALVO = Ponto(0, 0, 0);
-
-    
-    
+        
     glGetFloatv(GL_MODELVIEW_MATRIX,&CameraMatrix[0][0]);
     InverteMatriz(CameraMatrix, InvCameraMatrix);
     SalvaMatrizDaCamera(InvCameraMatrix);
-    
-    //ImprimeMatriz(CameraMatrix);
-    //cout << "Inversa:\n";
-    //ImprimeMatriz(InvCameraMatrix);
 
 }
 // **********************************************************************
@@ -1164,63 +1165,6 @@ void DesenhaCanhao() {
     glPopMatrix(); // Restaura a matriz
 
     glPopMatrix(); // Finaliza as transformações do canhão
-}
-// Função para mover o projétil
-void AtualizarPosicaoProjetil() {
-    if (disparado) {
-        // Atualiza a posição com base na direção e velocidade
-        projX += dirProjX * velocidadeProj; // Atualiza a posição no eixo X
-        projY += dirProjY * velocidadeProj; // Atualiza a posição no eixo Y
-        projZ += dirProjZ * velocidadeProj; // Atualiza a posição no eixo Z
-
-        // Exibe a nova posição do projétil
-        printf("Nova posição do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
-    }
-
-    if (disparado) {
-        // Atualiza a posição com base na direção e velocidade
-        projX += dirProjX * velocidadeProj; // Atualiza a posição no eixo X
-        projY += dirProjY * velocidadeProj; // Atualiza a posição no eixo Y
-        projZ += dirProjZ * velocidadeProj; // Atualiza a posição no eixo Z
-
-        // Verificar se o projétil ultrapassou os limites do mapa
-        if (projX < LIMITE_MIN_X || projX > LIMITE_MAX_X || 
-            projZ < LIMITE_MIN_Z || projZ > LIMITE_MAX_Z) 
-        {
-            disparado = false; // Parar o projétil
-            std::cout << "Projétil saiu do mapa!" << std::endl;
-        }
-
-        // Exibe a nova posição do projétil
-        printf("Nova posição do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
-    }
-    if (disparado1) {
-        // Atualiza a posição com base na direção e velocidade
-        projXd += dirProjXd * velocidadeProj; // Atualiza a posição no eixo X
-        projYd += dirProjYd * velocidadeProj; // Atualiza a posição no eixo Y
-        projZd += dirProjZd * velocidadeProj; // Atualiza a posição no eixo Z
-
-        // Exibe a nova posição do projétil
-        printf("Nova posição do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
-    }
-
-    if (disparado1) {
-        // Atualiza a posição com base na direção e velocidade
-        projXd += dirProjXd * velocidadeProj; // Atualiza a posição no eixo X
-        projYd += dirProjYd * velocidadeProj; // Atualiza a posição no eixo Y
-        projZd += dirProjZd * velocidadeProj; // Atualiza a posição no eixo Z
-
-        // Verificar se o projétil ultrapassou os limites do mapa
-        if (projXd < LIMITE_MIN_X || projXd > LIMITE_MAX_X || 
-            projZd < LIMITE_MIN_Z || projZd > LIMITE_MAX_Z) 
-        {
-            disparado1 = false; // Parar o projétil
-            std::cout << "Projétil saiu do mapa!" << std::endl;
-        }
-
-        // Exibe a nova posição do projétil
-        printf("Nova posição do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
-    }
 }
 
 void DesenhaParalelepipedoComTextura() {
@@ -1374,49 +1318,43 @@ void desenharLinhaDirecao(float projX, float projY, float projZ, float dirProjX,
     glEnd(); // Finaliza o desenho
 }
 
-// **********************************************************************
-//  void display( void )
-// **********************************************************************
-float PosicaoZ = -30;
-void display( void )
-{
-
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-	DefineLuz();
-	PosicUser();
-
-	glMatrixMode(GL_MODELVIEW);
-    glEnable(GL_TEXTURE_2D);
-
-    glPushMatrix();
-    glTranslatef(0, -1, 0);
-    DesenhaChao();
-    glPopMatrix();
+void exibirTexto(int x, int y, const char *texto) {
+    glRasterPos2i(x, y);  // Define a posição do texto na tela (canto superior esquerdo)
     
-	// glPushMatrix();
-	// 	glTranslatef ( 5.0f, 0.0f, 0.0f );
-    //     glRotatef(angulo,0,1,0);
-    //     //glBindTexture (GL_TEXTURE_2D, TEX1);
-	// 	glColor3f(0.5f,0.0f, 0.0f); // Vermelho
-    //     glutSolidCube(2);
-    //     //DesenhaCuboComTextura(1);
-	// glPopMatrix();
+    // Itera sobre os caracteres da string e desenha cada um
+    for (const char *c = texto; *c != '\0'; c++) {
+        glutBitmapCharacter(GLUT_BITMAP_9_BY_15, *c);  // Desenha o caractere atual
+    }
+}
 
-	// glPushMatrix();
-	// 	glTranslatef ( -4.0f, 0.0f, 2.0f );
-	// 	glRotatef(angulo,0,1,0);
-	// 	glColor3f(0.6156862745, 0.8980392157, 0.9803921569); // Azul claro
-    //     glutSolidCube(2);
-	// glPopMatrix();
-    
+void DesenhaPontuacao(){
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();    
+    glLoadIdentity();
+    int width = glutGet(GLUT_WINDOW_WIDTH);
+    int height = glutGet(GLUT_WINDOW_HEIGHT);
+    gluOrtho2D(0, width, height, 0); 
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    char scoreText[50];
+    sprintf(scoreText, "Pontos: %d", pontuacao);
+    exibirTexto(10, 10, scoreText); 
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix(); 
+    glMatrixMode(GL_MODELVIEW);
+
+}
+
+void DesenhaEAplicaTexturaProtagonista(){
     glPushMatrix();
         glTranslatef ( PosicaoDoObjeto.x, PosicaoDoObjeto.y, PosicaoDoObjeto.z );
         glRotatef(anguloPrincipal,0,1,0);
         glBindTexture (GL_TEXTURE_2D, TEX);//glColor3f(0.8f,0.8f, 0.0f); // AMARELO
         DesenhaParalelepipedoComTextura();//glutSolidCube(2);
         glRotatef(270.0f, 0, 1, 0);
-        glColor3f(0,0,0);
         DesenhaCanhao();    
 
         // Tamanho do canhão (distância da base à ponta)
@@ -1460,26 +1398,37 @@ void display( void )
         //PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");
         //P.imprime("Ponto Instanciado: ", "\n");
     glPopMatrix();
+}
+// **********************************************************************
+//  void display( void )
+// **********************************************************************
+float PosicaoZ = -30;
+void display( void )
+{
+
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+    DesenhaPontuacao();
+	DefineLuz();
+	PosicUser();
+
+	glMatrixMode(GL_MODELVIEW);    
+    glEnable(GL_TEXTURE_2D);
+
+    glPushMatrix();
+    glTranslatef(0, -1, 0);
+    DesenhaChao();
+    glPopMatrix();
+    
+    DesenhaEAplicaTexturaProtagonista();
+    
 
     DesenhaParedao();
     DesenhaObjetos();
     glColor3f(0.8,0.8,0);    
-    //AtualizarPosicaoProjetil();
     DesenhaProjetil();
-
-
-   // Exibe vaca
-    // glPushMatrix();
-    //     glTranslatef(33.9337, 8.5, 20); // Posiciona a vaca nas novas coordenadas
-    //     glScalef(0.3f, 0.3f, 0.3f);
-    //     glRotatef(anguloDaVacaZ, 0, 0, 1);             // Rotação inicial (sem rotação)
-    //     glRotatef(anguloDaVacaX, 1, 0, 0);          // Rotação adicional no eixo X
-    //     glRotatef(anguloDaVacaY, 0, 1, 0);          // Rotação adicional no eixo X
-    //     // glColor3f(1.0f, 0.3f, 0.0f);    // Ajuste de cor se necessário
-    //     MundoVirtual[0].ExibeObjeto();     // Renderiza o objeto
-    // glPopMatrix();
-
     DesenhaLimitesMapa();
+    
 
 	glutSwapBuffers();
 }
@@ -1556,29 +1505,7 @@ void keyboard ( unsigned char key, int x, int y )
         OBS = Ponto(0, 3, 10);
         ALVO = Ponto(0, 0, 0);
         break;  
-    case ' ': // Resetar a posição
-        // if (!disparado) // Verifica se o projétil não foi disparado
-        // {
-        //     // Converte os ângulos para radianos
-        //     float radX = anguloPrincipal * M_PI / 180.0f; // Ângulo do canhão
-        //     float radY = (anguloCanhao) * M_PI / 180.0f; // Ângulo principal (se necessário)
-
-        //     disparado = true;
-
-        //     dirProjX = cos(radY) * sin(radX); // Direção no eixo X
-        //     dirProjY = sin(radY);             // Direção no eixo Y
-        //     dirProjZ = cos(radY) * cos(radX); // Direção no eixo Z
-            
-
-        //     // A posição inicial do projétil é a posição da ponta do canhão
-        //     projX = pontaX + dirProjX;
-        //     projY = pontaY + dirProjY;
-        //     projZ = pontaZ + dirProjZ;
-            
-
-        //     // Exibe a posição inicial do projétil
-        //     printf("Posição inicial do projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
-        // }
+    case ' ': // Atirar canhão
         if (!disparado)
         {
             disparado = true;
@@ -1638,11 +1565,6 @@ void keyboard ( unsigned char key, int x, int y )
             P3xd = P2xd + dirXd * escala * 2;
             P3yd = P2yd; 
             P3zd = P2zd;
-            
-            
-            // projXd = pontaXd + dirProjXd;
-            // projYd = pontaYd + dirProjYd;
-            // projZd = pontaZd + dirProjZd;
         }
         break;   
     default:
@@ -1745,8 +1667,8 @@ int main ( int argc, char** argv )
     // MundoVirtual[0].LeObjeto(Nome);
     //MundoVirtual[1].LeObjeto("watership.tri");
 
-     if (!LoadOBJ("Ape.obj", model)) {
-        return -1;
+    if (!LoadOBJ("Ape.obj", model)) {
+    return -1;
     }
 	
     glutMainLoop ( );
