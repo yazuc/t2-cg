@@ -69,7 +69,15 @@ struct Projectile {
     float x, y, z;
     bool active;
 };
+
+struct BoundingBox {
+    float minX, minY, minZ;
+    float maxX, maxY, maxZ;
+};
+
 Projectile proj;
+Projectile proj2;
+
 
 Temporizador T;
 double AccumDeltaT=0;
@@ -102,8 +110,8 @@ Ponto VetorAlvo;
 GLfloat CameraMatrix[4][4];
 GLfloat InvCameraMatrix[4][4];
 GLuint TEX1, TEX2, TEX, TEX3;
-GLfloat anguloCanhao = 0.0f;
-GLfloat anguloCanhaod = 0.0f;
+GLfloat anguloCanhao = 5.0f;
+GLfloat anguloCanhaod = 5.0f;
 Ponto PosicaoDoObjeto(0,0,4);
 Ponto DirecaoDoObjeto(1,0,0);
 Ponto DirecaoDoCanhao(1,0,0);
@@ -121,8 +129,6 @@ float velocidadeProj = 0.5f; // Velocidade do projétil
 const float velocidadeObj = 0.5f; // Velocidade do objeto
 float pontaX, pontaY, pontaZ, dirProjX, dirProjY, dirProjZ = 0.0;
 float pontaXd, pontaYd, pontaZd, dirProjXd, dirProjYd, dirProjZd = 0.0;
-bool disparado = false; // Flag para indicar se o projétil foi disparado
-bool disparado1 = false; // Flag para indicar se o projétil foi disparado
 const int largura = 40;  // Número de blocos na largura do paredão
 const int altura = 15;   // Número de blocos na altura do paredão
 bool paredao[altura][largura]; // Matriz de blocos do paredão (true = ativo)
@@ -141,6 +147,7 @@ float P3xd, P3yd, P3zd; // Ponto final
 
 float t = 0.0f;  // Parâmetro da curva (de 0 a 1)
 float dt = 0.01f; // Incremento de t para o movimento
+
 float td = 0.0f;  // Parâmetro da curva (de 0 a 1)
 float dtd = 0.01f; // Incremento de t para o movimento
 
@@ -161,108 +168,75 @@ const int profundidadePiso = 40; // Número de blocos na profundidade do piso
 bool pisoEsquerda[larguraPiso][profundidadePiso]; // Matriz de blocos do piso da esquerda (true = ativo)
 bool pisoDireita[larguraPiso][profundidadePiso]; // Matriz de blocos do piso da direita (true = ativo)
 
-typedef struct  // Struct para armazenar um ponto
-{
-    float X,Y,Z;
-    void Set(float x, float y, float z)
-    {
-        X = x;
-        Y = y;
-        Z = z;
-    }
-    void Imprime()
-    {
-        cout << "X: " << X << " Y: " << Y << " Z: " << Z;
-    }
-} TPoint;
+
+BoundingBox getModelBoundingBox(const Model& model){
+
+  float minX = model.vertices[0].x;
+  float minY = model.vertices[0].y;
+  float minZ = model.vertices[0].z;
+  float maxX = model.vertices[0].x;
+  float maxY = model.vertices[0].y;
+  float maxZ = model.vertices[0].z;
+
+  for(size_t i = 1; i < model.vertices.size(); i++){
+    minX = std::min(minX, model.vertices[i].x);
+    minY = std::min(minY, model.vertices[i].y);
+    minZ = std::min(minZ, model.vertices[i].z);
+
+    maxX = std::max(maxX, model.vertices[i].x);
+    maxY = std::max(maxY, model.vertices[i].y);
+    maxZ = std::max(maxZ, model.vertices[i].z);
+  }
+
+   return {minX, minY, minZ, maxX, maxY, maxZ};
+}
+float clamp(float value, float min, float max) {
+    return std::max(min, std::min(value, max));
+}
+bool checkObjectCollision(float px, float py, float pz, const Objeto& obj, const Model& m) {
+    // Account for scaling
+    BoundingBox modelBox = getModelBoundingBox(m);
+    modelBox.minX *= obj.largura;
+    modelBox.minY *= obj.altura;
+    modelBox.minZ *= obj.profundidade;
+    modelBox.maxX *= obj.largura;
+    modelBox.maxY *= obj.altura;
+    modelBox.maxZ *= obj.profundidade;
 
 
-typedef struct // Struct para armazenar um triângulo
-{
-    TPoint P1, P2, P3; // Pontos do triângulo
-    float R, G, B;     // Cores RGB da face
-
-    void imprime()
-    {
-        cout << "P1 "; P1.Imprime(); cout << endl;
-        cout << "P2 "; P2.Imprime(); cout << endl;
-        cout << "P3 "; P3.Imprime(); cout << endl;
-        cout << "Cor: (" << R << ", " << G << ", " << B << ")" << endl;
-    }
-} TTriangle;
+    // Adjust modelBox position based on object position
+    modelBox.minX += obj.x;
+    modelBox.minY += obj.y;
+    modelBox.minZ += obj.z;
+    modelBox.maxX += obj.x;
+    modelBox.maxY += obj.y;
+    modelBox.maxZ += obj.z;
 
 
-// Classe para armazenar um objeto 3D
-class Objeto3D
-{
-    TTriangle *faces; // vetor de faces
-    unsigned int nFaces; // Variavel que armazena o numero de faces do objeto
-public:
-    Objeto3D()
-    {
-        nFaces = 0;
-        faces = NULL;
-    }
-    unsigned int getNFaces()
-    {
-        return nFaces;
-    }
-    void LeObjeto (char *Nome); // implementado fora da classe
-    void ExibeObjeto(); // implementado fora da classe
-};
+    // Sphere-AABB collision detection (projectile is a sphere with radius 0.5)
+    float closestX = clamp(px, modelBox.minX, modelBox.maxX);
+    float closestY = clamp(py, modelBox.minY, modelBox.maxY);
+    float closestZ = clamp(pz, modelBox.minZ, modelBox.maxZ);
 
+    float distanceSquared = (px - closestX) * (px - closestX) +
+                           (py - closestY) * (py - closestY) +
+                           (pz - closestZ) * (pz - closestZ);
 
-Objeto3D *MundoVirtual;
-
-void Objeto3D::LeObjeto (char *Nome)
-{
-    // ***************
-    // Exercicio
-    //      complete esta rotina fazendo a leitura do objeto
-    // ***************
-    
-    ifstream arq;
-    arq.open(Nome, ios::in);
-    if (!arq)
-    {
-        cout << "Erro na abertura do arquivo " << Nome << "." << endl;
-        exit(1);
-    }
-    arq >> nFaces;
-    faces = new TTriangle[nFaces];
-    float x,y,z;
-    for (int i=0;i<nFaces;i++)
-    {
-        // Le os trs vŽrtices
-        arq >> x >> y >> z; // Vertice 1
-        faces[i].P1.Set(x,y,z);
-        arq >> x >> y >> z; // Vertice 2
-        faces[i].P2.Set(x,y,z);
-        arq >> x >> y >> z; // Vertice 3
-        faces[i].P3.Set(x,y,z);
-        cout << i << ": ";
-        faces[i].imprime();
-        // Falta ler o RGB da face....
-    }
+    return distanceSquared <= 0.25f; // 0.5f radius squared
 }
 
-void Objeto3D::ExibeObjeto()
-{
-    if (!faces || nFaces == 0)
-    {
-        cout << "Objeto vazio ou não carregado!" << endl;
-        return;
-    }
 
-    glBegin(GL_TRIANGLES); // Início do desenho de triângulos
-    for (unsigned int i = 0; i < nFaces; i++)
-    {
-        // Desenhar o triângulo i
-        glVertex3f(faces[i].P1.X, faces[i].P1.Y, faces[i].P1.Z); // Vértice 1
-        glVertex3f(faces[i].P2.X, faces[i].P2.Y, faces[i].P2.Z); // Vértice 2
-        glVertex3f(faces[i].P3.X, faces[i].P3.Y, faces[i].P3.Z); // Vértice 3
+void handleObjectCollision(int objectType){
+    if (objectType == 1) {
+        pontuacao += 10;
+        std::cout << "Atingiu inimigo! Pontuação: " << pontuacao << std::endl;
+    } else if (objectType == 2) {
+        pontuacao -= 10;
+        std::cout << "Atingiu amigo! Pontuação: " << pontuacao << std::endl;
+    } else {
+        std::cout << "Fim de jogo! Pontuação final: " << pontuacao << std::endl;
+        exit(0);
     }
-    glEnd(); // Fim do desenho
 }
 
 bool LoadOBJ(const std::string& filePath, Model& model) {
@@ -378,9 +352,6 @@ GLuint LoadTexture (const char *nomeTex)
         return -1;
     }
 
-    // Define que tipo de textura ser� usada
-    // GL_TEXTURE_2D ==> define que ser� usada uma textura 2D (bitmaps)
-    // texture_id[OBJETO_ESQUERDA]  ==> define o n�mero da textura
     glBindTexture ( GL_TEXTURE_2D, IdTEX );
 
     // Carrega a imagem
@@ -401,8 +372,6 @@ GLuint LoadTexture (const char *nomeTex)
     formato = GL_RGB;
     if (Img.Channels() == 4)
         formato = GL_RGBA;
-    //if (Img.Channels() == 3)
-    //   formato = GL_RGB;
 
     glTexImage2D (GL_TEXTURE_2D, level, formato,
                   Img.SizeX(), Img.SizeY(),
@@ -493,51 +462,29 @@ void animate()
     }
 }
 
-bool verificarColisoesObjetosPiso(float x, float y, float z) {
-    for (int i = 0; i < NUM_OBJETOS; i++) {
-        if (!objetos[i].ativo) continue; // Ignorar objetos já atingidos
+bool verificarColisoesObjetosPiso(float x, float y, float z) {   
+     for (int i = 0; i < NUM_OBJETOS; ++i) {
+        if (!objetos[i].ativo) continue;
 
-        const Objeto& obj = objetos[i];
-
-        // Verifica se o projétil está dentro do volume do objeto
-        bool colidiu =
-            x >= obj.x - obj.largura / 2 && x <= obj.x + obj.largura / 2 &&
-            y >= obj.y - obj.altura / 2 && y <= obj.y + obj.altura / 2 &&
-            z >= obj.z - obj.profundidade / 2 && z <= obj.z + obj.profundidade / 2;
-
-        if (colidiu) {
-            // Atualiza pontuação
-            if (obj.tipo == 1) {
-                pontuacao += 10;
-                std::cout << "Atingiu inimigo! Pontuação: " << pontuacao << std::endl;
-            } else if (obj.tipo == 2) {
-                pontuacao -= 10;
-                std::cout << "Atingiu amigo! Pontuação: " << pontuacao << std::endl;
-            } else {
-                std::cout << "Fim de jogo! Pontuação final: " << pontuacao << std::endl;
-                exit(0);
-            }
-            objetos[i].ativo = false; // Marca o objeto como atingido
-            return false; // Evita múltiplas colisões
+        if (checkObjectCollision(x, y, z, objetos[i], (objetos[i].tipo == 1)? model : Canhao)) {
+            objetos[i].ativo = false; 
+            handleObjectCollision(objetos[i].tipo); 
+            return true;  
         }
     }
-
-    return true;
+     return false;  // No collision
 }
 
-// **********************************************************************
-//  void DesenhaCubo()
-// **********************************************************************
 bool verificarColisao()
 {
     // Posições do paredão: O paredão vai de x = 6 até x = -7, de y = 0 e de z = -11 até z = 11
     const float paredaoXMin = 5.0f;
-    const float paredaoXMax = 7.0f;
+    const float paredaoXMax = 5.5f;
     const float paredaoZMin = -11.0f; 
     const float paredaoZMax = 30.0f; 
-
+    
     // Verifica se a posição do projétil está dentro dos limites do paredão
-    if (projX >= paredaoXMin && projX <= paredaoXMax && projZ >= paredaoZMin && projZ <= paredaoZMax)
+    if (proj.x >= paredaoXMin && proj.x <= paredaoXMax && proj.z >= paredaoZMin && proj.z <= paredaoZMax)
     {
         pontuacao += 5;
         std::cout << "Atingiu paredão! Pontuação: " << pontuacao << std::endl;
@@ -549,14 +496,12 @@ bool verificarColisao()
 
 bool verificarColisao2()
 {
-    // Posições do paredão: O paredão vai de x = 6 até x = -7, de y = 0 e de z = -11 até z = 11
     const float paredaoXMin = 5.0f;
-    const float paredaoXMax = 7.0f;
+    const float paredaoXMax = 5.5f;
     const float paredaoZMin = -11.0f; 
     const float paredaoZMax = 30.0f; 
 
-    // Verifica se a posição do projétil está dentro dos limites do paredão
-    if (projX >= paredaoXMin && projX <= paredaoXMax && projZ >= paredaoZMin && projZ <= paredaoZMax)
+    if (proj2.x >= paredaoXMin && proj2.x <= paredaoXMax && proj2.z >= paredaoZMin &&  proj2.z <= paredaoZMax)
     {
         pontuacao += 5;
         std::cout << "Atingiu paredão! Pontuação: " << pontuacao << std::endl;
@@ -596,51 +541,67 @@ void quebrarBlocoPiso(float x, float z) {
 
 bool quebrarBloco(float projX, float projY, float projZ)
 {
-    // Primeiro, converta a posição do projétil para o sistema de coordenadas do paredão
-    // Aqui você já tem as transformações necessárias (inversão de translação e rotação)
+    const float transX = -18.0f; 
+    const float transY = -1.0f;  
+    const float transZ = 7.0f;   
+    const float rotAngulo = 90.0f; 
 
-    // Definindo as transformações aplicadas ao paredão
-    const float transX = -18.0f; // Translação em X
-    const float transY = -1.0f;  // Translação em Y
-    const float transZ = 7.0f;   // Translação em Z
-    const float rotAngulo = 90.0f; // Ângulo de rotação
-
-    // Inversão da translação
     projX -= transX;
     projY -= transY + 7;
-    projZ -= transZ + 3;
+    projZ -= transZ ;
 
-    // Agora aplicamos a inversa da rotação. A rotação foi feita no eixo Y, então aplicamos a rotação inversa no eixo Y.
-    float radAngulo = rotAngulo * M_PI / 180.0f; // Converte o ângulo para radianos
-    float cosAngulo = cos(-radAngulo);  // Cálculo para rotação inversa
+    float radAngulo = rotAngulo * M_PI / 180.0f; 
+    float cosAngulo = cos(-radAngulo);  
     float sinAngulo = sin(-radAngulo);
 
-    // Aplica a inversão da rotação para o eixo Y
     float rotatedX = cosAngulo * projX + sinAngulo * projZ;
     float rotatedZ = sinAngulo * projX - cosAngulo * projZ;
 
-    // Agora, o projX e projZ estão no sistema de coordenadas local do paredão
     projX = rotatedX;
     projZ = rotatedZ;
 
-    // Ajustando o valor de projY para garantir que o cálculo de blocoY esteja correto
-    // Se o paredão está centrado na origem, o cálculo de Y precisa ser ajustado
-    int blocoY = int(projY + altura / 2.0f);   // Converte a posição para índice da matriz
+    int blocoY = int(projY + altura / 2.0f);   
 
-    // Calcula as coordenadas do bloco atingido
-    int blocoX = int((projX + largura / 2.0f));  // Converte a posição para índice da matriz
+    int blocoX = int((projX + largura / 2.0f));  
 
-    // Verifica se a posição calculada está dentro dos limites do paredão
     if (blocoX >= 0 && blocoX < largura && blocoY >= 0 && blocoY < altura)
     {
         if(paredao[blocoY][blocoX]){
-            return paredao[blocoY][blocoX] = false; // Marca o bloco como destruído
+            return paredao[blocoY][blocoX] = false; 
         }
     }
-
     return true;
 }
 
+bool estaQuebrado(float projX, float projY, float projZ) {
+    const float transX = -18.0f; 
+    const float transY = -1.0f;  
+    const float transZ = 7.0f;   
+    const float rotAngulo = 90.0f; 
+
+    projX -= transX;
+    projY -= transY + 7;
+    projZ -= transZ;
+
+    float radAngulo = rotAngulo * M_PI / 180.0f; 
+    float cosAngulo = cos(-radAngulo);  
+    float sinAngulo = sin(-radAngulo);
+
+    float rotatedX = cosAngulo * projX + sinAngulo * projZ;
+    float rotatedZ = sinAngulo * projX - cosAngulo * projZ;
+
+    projX = rotatedX;
+    projZ = rotatedZ;
+
+    int blocoY = static_cast<int>(projY + altura / 2.0f);   
+    int blocoX = static_cast<int>(projX + largura / 2.0f);  
+
+    if (blocoX >= 0 && blocoX < largura && blocoY >= 0 && blocoY < altura) {
+        return !paredao[blocoY][blocoX]; 
+    }
+
+    return false; 
+}
 void DesenhaObjetos() {
     for (int i = 0; i < NUM_OBJETOS; i++) {
         if (!objetos[i].ativo) continue; // Ignorar objetos inativos
@@ -651,135 +612,182 @@ void DesenhaObjetos() {
         glTranslatef(obj.x, obj.y, obj.z);
         glColor3f(obj.r, obj.g, obj.b);
         glScalef(obj.largura, obj.altura, obj.profundidade);
-        DrawModel(model);
+        if(objetos[i].tipo == 1){
+            DrawModel(model);
+        }
+        if(objetos[i].tipo == 2){
+            DrawModel(Canhao);
+        }
         glPopMatrix();
     }
+}
+
+Ponto calculateBezierPoint(float t, float P0x, float P0y, float P0z,
+                           float P1x, float P1y, float P1z,
+                           float P2x, float P2y, float P2z,
+                           float P3x, float P3y, float P3z) {
+    float u = 1.0f - t;
+    float x = P0x * u * u * u + 3 * P1x * u * u * t + 3 * P2x * u * t * t + P3x * t * t * t;
+    float y = P0y * u * u * u + 3 * P1y * u * u * t + 3 * P2y * u * t * t + P3y * t * t * t;
+    float z = P0z * u * u * u + 3 * P1z * u * u * t + 3 * P2z * u * t * t + P3z * t * t * t;
+    return Ponto(x,y,z);
+}
+
+void calculaParamProj() {
+    float radX = anguloPrincipal * M_PI / 180.0f; 
+    float radY = anguloCanhao * M_PI / 180.0f;   
+
+    float initialSpeed = 15.0f; 
+    float dirX = cos(radY) * sin(radX);
+    float dirY = sin(radY);
+    float dirZ = cos(radY) * cos(radX);
+
+    float scale = 10.0f; 
+    P0x = pontaX;
+    P0y = pontaY;
+    P0z = pontaZ;
+
+    P1x = P0x + dirX * scale;
+    P1y = P0y + dirY * scale + 5; 
+    P1z = P0z + dirZ * scale;
+
+    P2x = P1x + dirX * scale;
+    P2y = P1y + dirY * scale - 5; 
+    P2z = P1z + dirZ * scale;
+
+    P3x = P2x + dirX * scale * 2; 
+    P3y = P2y;
+    P3z = P2z;
+}
+
+void calculaParamProjd() {
+    float radX = anguloPrincipal * M_PI / 180.0f; 
+    float radY = anguloCanhaod * M_PI / 180.0f;   
+
+    float initialSpeed = 15.0f; 
+    float dirX = cos(radY) * sin(radX);
+    float dirY = sin(radY);
+    float dirZ = cos(radY) * cos(radX);
+
+    float scale = 10.0f; 
+    P0xd = pontaXd;
+    P0yd = pontaYd;
+    P0zd = pontaZd;
+
+    P1xd = P0xd + dirX * scale;
+    P1yd = P0yd + dirY * scale + 5; 
+    P1zd = P0zd + dirZ * scale;
+
+    P2xd = P1xd + dirX * scale;
+    P2yd = P1yd + dirY * scale - 5; 
+    P2zd = P1zd + dirZ * scale;
+
+    P3xd = P2xd + dirX * scale * 2; 
+    P3yd = P2yd;
+    P3zd = P2zd;
 }
 
 void DesenhaProjetil()
 {
     bool continua;
     bool continua1;
-    if (disparado)
-    {
+    if (proj.active) {
+        Ponto p = calculateBezierPoint(t, P0x, P0y, P0z, P1x, P1y, P1z, P2x, P2y, P2z, P3x, P3y, P3z);
+        proj.x = p.x;
+        proj.y = p.y;
+        proj.z = p.z;
+
+        // Draw the projectile
         glPushMatrix();
-            glTranslatef(projX, projY, projZ);
-            glutSolidSphere(0.5, 20, 20); // Desenha o projétil como uma esfera
+        glTranslatef(proj.x, proj.y, proj.z);
+        glutSolidSphere(0.5f, 20, 20);
         glPopMatrix();
-        if (t <= 1.0f)
-        {
-            // Curva de Bézier cúbica
-            projX = pow(1-t, 3) * P0x + 3 * pow(1-t, 2) * t * P1x + 3 * (1-t) * t*t * P2x + t*t*t * P3x;
-            projY = pow(1-t, 3) * P0y + 3 * pow(1-t, 2) * t * P1y + 3 * (1-t) * t*t * P2y + t*t*t * P3y;
-            projZ = pow(1-t, 3) * P0z + 3 * pow(1-t, 2) * t * P1z + 3 * (1-t) * t*t * P2z + t*t*t * P3z;
 
-            // Incrementa o parâmetro t
-            t += dt;
-
-            // Exibe a posição atual do projétil (opcional)
-            printf("Projétil: x:%f y:%f z:%f\n", projX, projY, projZ);
-            if (verificarColisao()) // Considera a posição do paredão
+        t += dt;
+        if(!estaQuebrado(proj.x, proj.y, proj.z)){
+            if (verificarColisao()) 
             {
-                const int alcance = 1; // Alcance da destruição ao redor do impacto
-
-                // Itera sobre os blocos ao redor (em 3 dimensões)
+                p.imprime("Posicao do Projetil");
+                const int alcance = 1; 
                 for (int dx = -alcance; dx <= alcance; ++dx)
                 {
                     for (int dy = -alcance; dy <= alcance; ++dy)
                     {
                         for (int dz = -alcance; dz <= alcance; ++dz)
                         {
-                            int blocoX = projX + dx;
-                            int blocoY = projY + dy;
-                            int blocoZ = projZ + dz;
+                            int blocoX = proj.x + dx;
+                            int blocoY = proj.y + dy;
+                            int blocoZ = proj.z + dz;
 
-                            // Quebra o bloco na posição calculada
-                            continua = quebrarBloco(blocoX, blocoY, blocoZ);
+                            quebrarBloco(blocoX, blocoY, blocoZ);
                         }
                     }
-                }
-                disparado = continua; // O projétil parou
-                // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
-                std::cout << "Colisão com o paredão!" << std::endl;
+                }    
+                proj.active = false;
             }
-            continua = verificarColisoesObjetosPiso(projX, projY, projZ);
-            disparado = continua;
+        }else{                  
+             proj.active = !verificarColisoesObjetosPiso(proj.x, proj.y, proj.z);                  
         }
-        else
-        {
-            // Colisão com o piso
-            if (projZ >= LIMITE_MIN_Z && projZ <= LIMITE_MAX_Z && projX >= LIMITE_MIN_X && projX <= LIMITE_MAX_X && projY <= 0.0f) {
-                pontuacao -= 5;
-                quebrarBlocoPiso(projX, projZ); // Quebra o bloco do piso colidido e os adjacentes
-                std::cout << "Atingiu piso! Pontuação: " << pontuacao << std::endl;
-            }
-            // Finaliza o disparo ao atingir o final da curva
-            disparado = false;
-            printf("Disparo concluído.\n");
+        // Colisão com o piso
+        if (proj.z >= LIMITE_MIN_Z && proj.z <= LIMITE_MAX_Z && proj.x >= LIMITE_MIN_X && proj.x <= LIMITE_MAX_X && proj.y <= 0.0f) {
+            pontuacao -= 5;
+            quebrarBlocoPiso(proj.x, proj.z); 
+            proj.active = false;
+        }            
+        if (t >= 1.0f) {     
+            verificarColisoesObjetosPiso(proj.x, proj.y, proj.z);       
+            proj.active = false;
         }
     }
+    if (proj2.active) {
+        // Calculate projectile position using Bézier curve
+        Ponto p = calculateBezierPoint(td, P0xd, P0yd, P0zd, P1xd, P1yd, P1zd, P2xd, P2yd, P2zd, P3xd, P3yd, P3zd);
+        proj2.x = p.x;
+        proj2.y = p.y;
+        proj2.z = p.z;
 
-    if (disparado1)
-    {
+        // Draw the projectile
+        glColor3f(1.0f, 1.0f, 0.0f);
         glPushMatrix();
-            glTranslatef(projXd, projYd, projZd);
-            glutSolidSphere(0.5, 20, 20); // Desenha o projétil como uma esfera
+        glTranslatef(proj2.x, proj2.y, proj2.z);
+        glutSolidSphere(0.5f, 20, 20);
         glPopMatrix();
 
-        if (td <= 1.0f)
-        {
-            // Curva de Bézier cúbica
-            projXd = pow(1-td, 3) * P0xd + 3 * pow(1-td, 2) * td * P1xd + 3 * (1-td) * td*td * P2xd + td*td*td * P3xd;
-            projYd = pow(1-td, 3) * P0yd + 3 * pow(1-td, 2) * td * P1yd + 3 * (1-td) * td*td * P2yd + td*td*td * P3yd;
-            projZd = pow(1-td, 3) * P0zd + 3 * pow(1-td, 2) * td * P1zd + 3 * (1-td) * td*td * P2zd + td*td*td * P3zd;
-
-            // Incrementa o parâmetro t
-            td += dtd;
-
-            // Exibe a posição atual do projétil (opcional)
-            printf("Projétil: x:%f y:%f z:%f\n", projXd, projYd, projZd);
-            if (verificarColisao2()) // Considera a posição do paredão
+        td += dtd;
+        if(!estaQuebrado(proj2.x, proj2.y, proj2.z)){
+            if (verificarColisao2()) 
             {
-                const int alcance = 1; // Alcance da destruição ao redor do impacto
-
-                // Itera sobre os blocos ao redor (em 3 dimensões)
+                const int alcance = 1; 
                 for (int dx = -alcance; dx <= alcance; ++dx)
                 {
                     for (int dy = -alcance; dy <= alcance; ++dy)
                     {
                         for (int dz = -alcance; dz <= alcance; ++dz)
                         {
-                            int blocoX = projXd + dx;
-                            int blocoY = projYd + dy;
-                            int blocoZ = projZd + dz;
+                            int blocoX = proj2.x + dx;
+                            int blocoY = proj2.y + dy;
+                            int blocoZ = proj2.z + dz;
 
-                            // Quebra o bloco na posição calculada
-                            continua1 = quebrarBloco(blocoX, blocoY, blocoZ);
+                            quebrarBloco(blocoX, blocoY, blocoZ);
                         }
                     }
-                }
-                disparado1 = continua1; // O projétil parou
-                // Adicionar lógica para efeito de colisão, como mudança de cor ou efeito sonoro
-                std::cout << "Colisão com o paredão!" << std::endl;
+                }    
+                proj2.active = false;
             }
-            continua1 = verificarColisoesObjetosPiso(projXd, projYd, projZd);
-            disparado1 = continua;
+        }else{           
+             proj2.active = !verificarColisoesObjetosPiso(proj2.x, proj2.y, proj2.z);                                       
         }
-        else
-        {
-            // Colisão com o piso
-            if (projZd >= LIMITE_MIN_Z && projZd <= LIMITE_MAX_Z && projXd >= LIMITE_MIN_X && projXd <= LIMITE_MAX_X && projYd <= 0.0f) {
-                pontuacao -= 5;
-                quebrarBlocoPiso(projXd, projZd); // Quebra o bloco do piso colidido e os adjacentes
-                std::cout << "Atingiu piso! Pontuação: " << pontuacao << std::endl;
-            }
-
-            // Finaliza o disparo ao atingir o final da curva
-            disparado1 = false;
-            printf("Disparo concluído.\n");
+        // Colisão com o piso
+        if (proj2.z >= LIMITE_MIN_Z && proj2.z <= LIMITE_MAX_Z && proj2.x >= LIMITE_MIN_X && proj2.x <= LIMITE_MAX_X && proj2.y <= 0.0f) {
+            pontuacao -= 5;
+            quebrarBlocoPiso(proj2.x, proj2.z); 
+            proj2.active = false;
+        }            
+        if (td >= 1.0f) {     
+            verificarColisoesObjetosPiso(proj2.x, proj2.y, proj2.z);       
+            proj2.active = false;
         }
-    }
-    
+    }            
 }
 void DesenhaCubo(float tamAresta)
 {
@@ -1356,46 +1364,36 @@ void DesenhaEAplicaTexturaProtagonista(){
         DesenhaParalelepipedoComTextura();//glutSolidCube(2);
         glRotatef(270.0f, 0, 1, 0);
         DesenhaCanhao();    
-
-        // Tamanho do canhão (distância da base à ponta)
-        float comprimentoCanhao = 0.0f; // Ajuste esse valor conforme o comprimento do canhão
+        float comprimentoCanhao = 0.0f;
 
         // Converte o ângulo para radianos
         float radAngulo = anguloPrincipal * M_PI / 180.0f;
         float radAnguloCanhao = (anguloCanhao ) * M_PI / 180.0f;
         float radAnguloCanhaod = (anguloCanhaod ) * M_PI / 180.0f;
 
-        // A posição base do cubo já é PosicaoDoObjeto
-        // A posição da ponta do canhão será calculada a partir dessa base com o ângulo de rotação
-
-        // Calcula a direção do canhão (vetor de deslocamento)
         float direcaoX = cos(radAngulo) * comprimentoCanhao; // Direção no eixo X
-        float direcaoY = sin(radAnguloCanhao);                             // Direção no eixo Y (se necessário ajuste a rotação no Y)
+        float direcaoY = sin(radAnguloCanhao);                             // Direção no eixo Y 
         float direcaoZ = sin(radAngulo) * comprimentoCanhao; // Direção no eixo Z
 
         float direcaoXd = cos(radAngulo) * comprimentoCanhao; // Direção no eixo X
-        float direcaoYd = sin(radAnguloCanhaod);                             // Direção no eixo Y (se necessário ajuste a rotação no Y)
+        float direcaoYd = sin(radAnguloCanhaod);                             // Direção no eixo Y 
         float direcaoZd = sin(radAngulo) * comprimentoCanhao; // Direção no eixo Z
 
         float deslocamentoLateral = 2.0f;
-        // A posição do cubo já é PosicaoDoObjeto
-        // Agora, calculamos a posição da ponta do canhão com o deslocamento calculado
+
         pontaX = PosicaoDoObjeto.x + direcaoX ;
-        pontaY = PosicaoDoObjeto.y + direcaoY;
+        pontaY = PosicaoDoObjeto.y + direcaoY + 1;
         pontaZ = PosicaoDoObjeto.z + direcaoZ - deslocamentoLateral;
 
-        pontaXd = PosicaoDoObjeto.x + direcaoXd ;
-        pontaYd = PosicaoDoObjeto.y + direcaoYd;
+        pontaXd = PosicaoDoObjeto.x + direcaoXd;
+        pontaYd = PosicaoDoObjeto.y + direcaoYd + 1;
         pontaZd = PosicaoDoObjeto.z + direcaoZd + deslocamentoLateral; 
-        //desenharLinhaDirecao(pontaX, pontaY, pontaZ, projX, projY, projZ);
 
-        // Exibe a posição da ponta do canhão
-        //printf("Posição da ponta do canhão: x: %f, y: %f, z: %f\n", pontaX, pontaY, pontaZ);
         Ponto P;
         P = InstanciaPonto(Ponto(0,0,0), InvCameraMatrix);
         //P = InstanciaPonto(Ponto(0,0,0), OBS, ALVO);
 
-        //PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");
+        //PosicaoDoObjeto.imprime("Posicao do Objeto:", "\n");        
         //P.imprime("Ponto Instanciado: ", "\n");
     glPopMatrix();
 }
@@ -1426,6 +1424,7 @@ void display( void )
     DesenhaParedao();
     DesenhaObjetos();
     glColor3f(0.8,0.8,0);    
+    
     DesenhaProjetil();
     DesenhaLimitesMapa();
     
@@ -1506,67 +1505,17 @@ void keyboard ( unsigned char key, int x, int y )
         ALVO = Ponto(0, 0, 0);
         break;  
     case ' ': // Atirar canhão
-        if (!disparado)
-        {
-            disparado = true;
-            t = 0.0f; // Reinicia o movimento ao longo da curva
-
-            // Converte o anguloPrincipal para radianos
-            float radX = anguloPrincipal * M_PI / 180.0f;
-            float radY = anguloCanhao * M_PI / 180.0f;
-
-            // Calcula os vetores direcionais a partir dos ângulos
-            float dirX = cos(radY) * sin(radX);
-            float dirY = sin(radY);
-            float dirZ = cos(radY) * cos(radX);
-
-            P0x = pontaX;
-            P0y = pontaY;
-            P0z = pontaZ;
-
-            float escala = 10.0f; // 
-            P1x = P0x + dirX * escala;
-            P1y = P0y + dirY * escala + 5; 
-            P1z = P0z + dirZ * escala;
-
-            P2x = P1x + dirX * escala;
-            P2y = P1y + dirY * escala - 5; 
-            P2z = P1z + dirZ * escala;
-
-            P3x = P2x + dirX * escala * 2;
-            P3y = P2y; 
-            P3z = P2z;
+        if (!proj.active) {
+            proj.active = true;
+            t = 0.0f; 
+            calculaParamProj();
         }
-        if(!disparado1){
-            disparado1 = true;
-            td = 0.0f;
-            float radX = anguloPrincipal * M_PI / 180.0f; // Ângulo do canhão            
-            float radYd = (anguloCanhaod) * M_PI / 180.0f; // Ângulo principal (se necessário)
-        
-            disparado1 = true;
-
-            float dirXd = cos(radYd) * sin(radX); // Direção no eixo X
-            float dirYd = sin(radYd);             // Direção no eixo Y
-            float dirZd = cos(radYd) * cos(radX); // Direção no eixo Z
-            
-            P0xd = pontaXd;
-            P0yd = pontaYd;
-            P0zd = pontaZd;
-
-             float escala = 10.0f;
-            P1xd = P0xd + dirXd * escala;
-            P1yd = P0yd + dirYd * escala + 5; 
-            P1zd = P0zd + dirZd * escala;
-
-            P2xd = P1xd + dirXd * escala;
-            P2yd = P1yd + dirYd * escala - 5;  // CORRIGIDO PARA dirYd
-            P2zd = P1zd + dirZd * escala;
-
-            P3xd = P2xd + dirXd * escala * 2;
-            P3yd = P2yd; 
-            P3zd = P2zd;
+        if (!proj2.active) {
+            proj2.active = true;
+            td = 0.0f; 
+            calculaParamProjd();
         }
-        break;   
+        break;     
     default:
             cout << key;
     break;
@@ -1668,6 +1617,9 @@ int main ( int argc, char** argv )
     //MundoVirtual[1].LeObjeto("watership.tri");
 
     if (!LoadOBJ("Ape.obj", model)) {
+    return -1;
+    }
+    if (!LoadOBJ("eyeball.obj", Canhao)) {
     return -1;
     }
 	
