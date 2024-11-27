@@ -290,7 +290,7 @@ bool LoadOBJ(const std::string& filePath, Model& model) {
     }
 
     file.close();
-    return true;
+    return true; 
 }
 
 void DrawModel(const Model& model) {
@@ -322,26 +322,10 @@ void inicializarObjetos() {
     c = 10; 
     d = 2;
     float coordenadas[20][2] = {
-        {a, 24},
-        {a, 16},
-        {a, 8},
-        {a, 0},
-        {a, -8},
-        {b, 24},
-        {b, 16},
-        {b, 8},
-        {b, 0},
-        {b, -8},
-        {c, 24},
-        {c, 16},
-        {c, 8},
-        {c, 0},
-        {c, -8},
-        {d, 24},
-        {d, 16},
-        {d, 8},
-        {d, 0},
-        {d, -8},
+        {a, 24},{a, 16},{a, 8},{a, 0},{a, -8},
+        {b, 24},{b, 16},{b, 8},{b, 0},{b, -8},
+        {c, 24},{c, 16},{c, 8},{c, 0},{c, -8},
+        {d, 24},{d, 16},{d, 8},{d, 0},{d, -8},
     };
     for (int i = 0; i < NUM_OBJETOS; i++) {
         objetos[i].x = coordenadas[i][0];
